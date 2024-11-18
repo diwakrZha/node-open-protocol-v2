@@ -7,7 +7,6 @@
     "76": "alarmStatus",
     "22": "lockAtBatchDoneUpload",
     "35": "jobInfo",
-    "81": "TimeUpload",
     "91": "multiSpindleStatus",
     "101": "multiSpindleResult",
     "106": "lastPowerMACSTighteningResultStationData",

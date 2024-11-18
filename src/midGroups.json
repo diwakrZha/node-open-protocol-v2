@@ -51,12 +51,6 @@
         "ack": 75,
         "outList": true
     },
-    "TimeUpload":{
-        "data": 81,
-        "ack": 80,
-        "outList": true
-    },
-
     "multiSpindleStatus": {
         "data": 91,
         "subscribe": 90,
