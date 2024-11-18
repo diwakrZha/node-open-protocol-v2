@@ -7,6 +7,7 @@
     "76": "alarmStatus",
     "22": "lockAtBatchDoneUpload",
     "35": "jobInfo",
+    "81": "TimeUpload",
     "91": "multiSpindleStatus",
     "101": "multiSpindleResult",
     "106": "lastPowerMACSTighteningResultStationData",
@@ -21,5 +22,6 @@
     "401": "automaticManualMode",
     "421": "openProtocolCommandsDisabled",
     "501": "motorTuningResultData",
-    "900": "traceData"
+    "900": "traceData",
+    "901": "plotData"
 }

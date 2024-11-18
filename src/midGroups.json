@@ -25,7 +25,7 @@
         "subscribe": 51,
         "unsubscribe": 54,
         "ack": 53,
-        "generic": true
+        "generic": false
     },
     "lastTightening": {
         "data": 61,
@@ -51,6 +51,12 @@
         "ack": 75,
         "outList": true
     },
+    "TimeUpload":{
+        "data": 81,
+        "ack": 80,
+        "outList": true
+    },
+
     "multiSpindleStatus": {
         "data": 91,
         "subscribe": 90,
@@ -154,6 +160,13 @@
         "subscribe": 900,
         "unsubscribe": 9,
         "ack": 900,
+        "generic": true
+    },
+    "plotData": {
+        "data": 901,
+        "subscribe": 901,
+        "unsubscribe": 9,
+        "ack": 901,
         "generic": true
     }
 }

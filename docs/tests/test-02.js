@@ -16,7 +16,7 @@ After that, the production can start with use of the following messages:
 
 let op = require(".");
 
-let ipControlador = "127.0.0.1"; //"172.26.138.52"
+let ipControlador = "192.168.178.71"; //"172.26.138.52"
 let portControlador = 4545;
 
 let optsSessionControl = {
