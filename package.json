@@ -39,6 +39,5 @@
   "dependencies": {
     "chalk": "^4.1.2",
     "debug": "^4.3.7",
-    "node-open-protocol-v2": "github:cybusio/node-open-protocol-v2"
-  }
+    "node-open-protocol-v2": "github:diwakrZha/node-open-protocol-v2.git" }
 }
