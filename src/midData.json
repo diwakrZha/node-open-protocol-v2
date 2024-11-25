@@ -21,6 +21,5 @@
     "401": "automaticManualMode",
     "421": "openProtocolCommandsDisabled",
     "501": "motorTuningResultData",
-    "900": "traceData",
-    "901": "plotData"
+    "900": "traceData"
 }
