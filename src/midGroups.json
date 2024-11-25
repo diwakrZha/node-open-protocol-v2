@@ -25,7 +25,7 @@
         "subscribe": 51,
         "unsubscribe": 54,
         "ack": 53,
-        "generic": false
+        "generic": true
     },
     "lastTightening": {
         "data": 61,
@@ -154,13 +154,6 @@
         "subscribe": 900,
         "unsubscribe": 9,
         "ack": 900,
-        "generic": true
-    },
-    "plotData": {
-        "data": 901,
-        "subscribe": 901,
-        "unsubscribe": 9,
-        "ack": 901,
         "generic": true
     }
 }
