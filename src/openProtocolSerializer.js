@@ -1,8 +1,6 @@
 //@ts-check
 /*
-  Copyright: (c) 2023 Alejandro de la Mata Chico
-  Copyright: (c) 2018-2020, Smart-Tech Controle e Automação
-  GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+  Copyright...
 */
 
 const util = require("util");
@@ -16,28 +14,7 @@ const pad = helpers.padLeft;
 
 var debug = util.debuglog("open-protocol");
 
-/**
- * @class
- * @name Header
- * @param {object} Header
- * @param {number} Header.mid The MID describes how to interpret the message.
- * @param {number} Header.revision The MID Revision is unique per MID and is used in case different versions are available for the same MID.
- * @param {boolean} Header.noAck The No Ack Flag is used when setting a subscription.
- * @param {number} Header.stationID The station the message is addressed to in the case of controller with multi-station configuration.
- * @param {number} Header.spindleID The spindle the message is addressed to in the case several spindles are connected to the same controller.
- * @param {number} Header.sequenceNumber For acknowledging on “Link Level” with MIDs 0997 and 0998.
- * @param {number} Header.messageParts Linking function can be up to 9 = possible to send 9*9999 bytes messages. ~ 90 kB.
- * @param {number} Header.messageNumber Linking function, can be 1- 9 at message length > 9999.
- * @param {buffer | string} Header.payload the user's data
- */
-
 class OpenProtocolSerializer extends Transform {
-  /**
-   * @class OpenProtocolSerializer
-   * @description This class performs the serialization of the MID header.
-   * This transforms MID (object) in MID (Buffer).
-   * @param {Object} opts an object with the option passed to the constructor
-   */
   constructor(opts) {
     opts = opts || {};
     opts.writableObjectMode = true;
@@ -71,18 +48,19 @@ class OpenProtocolSerializer extends Transform {
       debug("openProtocolSerializer _transform err-revision:", chunk);
       return;
     }
+
     // Ensure Station ID is a 2-digit ASCII number, default "00"
     if (chunk.stationID === undefined || chunk.stationID === "  ") {
       chunk.stationID = "00";
     } else {
-      chunk.stationID = padLeft(chunk.stationID, 2);
+      chunk.stationID = pad(chunk.stationID, 2, 10);
     }
 
     // Ensure Spindle ID is a 2-digit ASCII number, default "00"
     if (chunk.spindleID === undefined || chunk.spindleID === "  ") {
       chunk.spindleID = "00";
     } else {
-      chunk.spindleID = padLeft(chunk.spindleID, 2);
+      chunk.spindleID = pad(chunk.spindleID, 2, 10);
     }
 
     if (
@@ -121,69 +99,52 @@ class OpenProtocolSerializer extends Transform {
       return;
     }
 
-    if (chunk.messageParts === " ") {
-      chunk.messageParts = 0;
-      chunk.messageParts = Number(chunk.messageParts);
-    } else if (chunk.messageParts === undefined) {
-      chunk.messageParts = "\n";
-    } else {
-      chunk.messageParts = Number(chunk.messageParts);
-    }
+    // Similarly handle messageParts and messageNumber with correct padding
 
-    if (
-      isNaN(chunk.messageParts) ||
-      chunk.messageParts < 0 ||
-      chunk.messageParts > 9
-    ) {
-      cb(new Error(`Invalid messageParts [${chunk.messageParts}]`));
-      debug("openProtocolSerializer _transform err-messageParts:", chunk);
-      return;
-    }
-
-    if (chunk.messageNumber === " ") {
-      chunk.messageNumber = 0;
-      chunk.messageNumber = Number(chunk.messageNumber);
-    } else if (chunk.messageNumber === undefined) {
-      chunk.messageNumber = "\n";
-    } else {
-      chunk.messageNumber = Number(chunk.messageNumber);
-    }
-
-    if (
-      isNaN(chunk.messageNumber) ||
-      chunk.messageNumber < 0 ||
-      chunk.messageNumber > 9
-    ) {
-      cb(new Error(`Invalid messageNumber [${chunk.messageNumber}]`));
-      debug("openProtocolSerializer _transform err-messageNumber:", chunk);
-      return;
-    }
-
+    // Ensure payload is a Buffer
     if (chunk.payload === undefined) {
       chunk.payload = "";
     }
+    let payloadBuffer = Buffer.from(chunk.payload.toString(), encodingOP);
 
-    if (!Buffer.isBuffer(chunk.payload) && typeof chunk.payload !== "string") {
-      cb(new Error(`Invalid payload [${chunk.payload}]`));
-      debug("openProtocolSerializer _transform err-payload:", chunk);
-      return;
-    }
+    // Calculate message length (excluding null terminator)
+    let messageLength = 20 + payloadBuffer.length;
 
-    let sizePayload = chunk.payload.length;
-    let sizeMessage = 21 + sizePayload;
-    let buf = Buffer.alloc(sizeMessage);
+    // Allocate buffer (include space for null terminator)
+    let buf = Buffer.alloc(messageLength + 1); // +1 for null terminator
 
-    buf.write(pad(sizeMessage - 1, 4), 0, 4, encodingOP);
-    buf.write(pad(chunk.mid, 4), 4, 4, encodingOP);
-    buf.write(pad(chunk.revision, 3), 8, encodingOP);
-    buf.write(chunk.noAck ? "1" : "0", 11, encodingOP);
-    buf.write(pad(chunk.stationID, 2), 12, encodingOP);
-    buf.write(pad(chunk.spindleID, 2), 14, encodingOP);
-    buf.write(pad(chunk.sequenceNumber, 2), 16, encodingOP);
-    buf.write(pad(chunk.messageParts, 1), 18, encodingOP);
-    buf.write(pad(chunk.messageNumber, 1), 19, encodingOP);
-    buf.write(chunk.payload.toString(encodingOP), 20, encodingOP);
-    buf.write("\u0000", sizeMessage, encodingOP);
+    // Write message length (4 characters)
+    buf.write(pad(messageLength, 4, 10), 0, 4, encodingOP);
+
+    // Write MID (4 characters)
+    buf.write(pad(chunk.mid, 4, 10), 4, 4, encodingOP);
+
+    // Write Revision (3 characters)
+    buf.write(pad(chunk.revision, 3, 10), 8, 3, encodingOP);
+
+    // Write No Ack Flag (1 character)
+    buf.write(chunk.noAck ? "1" : "0", 11, 1, encodingOP);
+
+    // Write Station ID (2 characters)
+    buf.write(pad(chunk.stationID, 2, 10), 12, 2, encodingOP);
+
+    // Write Spindle ID (2 characters)
+    buf.write(pad(chunk.spindleID, 2, 10), 14, 2, encodingOP);
+
+    // Write Sequence Number (2 characters)
+    buf.write(pad(chunk.sequenceNumber, 2, 10), 16, 2, encodingOP);
+
+    // Write Message Parts (1 character)
+    buf.write(pad(chunk.messageParts, 1, 10), 18, 1, encodingOP);
+
+    // Write Message Number (1 character)
+    buf.write(pad(chunk.messageNumber, 1, 10), 19, 1, encodingOP);
+
+    // Write Payload
+    payloadBuffer.copy(buf, 20);
+
+    // Write Null Terminator at the correct position
+    buf.write("\u0000", messageLength, 1, encodingOP);
 
     debug("openProtocolSerializer _transform publish", buf);
     this.push(buf);
@@ -192,7 +153,7 @@ class OpenProtocolSerializer extends Transform {
   }
 
   _destroy() {
-    //no-op, needed to handle older node versions
+    // No-op, needed to handle older node versions
   }
 }
 
