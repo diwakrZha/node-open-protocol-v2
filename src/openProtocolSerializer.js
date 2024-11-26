@@ -1,5 +1,6 @@
 //@ts-check
 /*
+  Copyright: (c) 2023 Alejandro de la Mata Chico
   Copyright: (c) 2018-2020, Smart-Tech Controle e Automação
   GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
 */
@@ -70,26 +71,35 @@ class OpenProtocolSerializer extends Transform {
       debug("openProtocolSerializer _transform err-revision:", chunk);
       return;
     }
-
-    if (chunk.stationID === "  " || chunk.stationID === undefined) {
-      chunk.stationID = 1;
+    // Ensure Station ID is a 2-digit ASCII number, default "00"
+    if (chunk.stationID === undefined || chunk.stationID === "  ") {
+      chunk.stationID = "00";
+    } else {
+      chunk.stationID = padLeft(chunk.stationID, 2);
     }
 
-    chunk.stationID = Number(chunk.stationID);
+    // Ensure Spindle ID is a 2-digit ASCII number, default "00"
+    if (chunk.spindleID === undefined || chunk.spindleID === "  ") {
+      chunk.spindleID = "00";
+    } else {
+      chunk.spindleID = padLeft(chunk.spindleID, 2);
+    }
 
-    if (isNaN(chunk.stationID) || chunk.stationID < 0 || chunk.stationID > 99) {
+    if (
+      isNaN(Number(chunk.stationID)) ||
+      Number(chunk.stationID) < 0 ||
+      Number(chunk.stationID) > 99
+    ) {
       cb(new Error(`Invalid stationID [${chunk.stationID}]`));
       debug("openProtocolSerializer _transform err-stationID:", chunk);
       return;
     }
 
-    if (chunk.spindleID === "  " || chunk.spindleID === undefined) {
-      chunk.spindleID = 1;
-    }
-
-    chunk.spindleID = Number(chunk.spindleID);
-
-    if (isNaN(chunk.spindleID) || chunk.spindleID < 0 || chunk.spindleID > 99) {
+    if (
+      isNaN(Number(chunk.spindleID)) ||
+      Number(chunk.spindleID) < 0 ||
+      Number(chunk.spindleID) > 99
+    ) {
       cb(new Error(`Invalid spindleID [${chunk.spindleID}]`));
       debug("openProtocolSerializer _transform err-spindleID:", chunk);
       return;
@@ -111,11 +121,14 @@ class OpenProtocolSerializer extends Transform {
       return;
     }
 
-    if (chunk.messageParts === " " || chunk.messageParts === undefined) {
+    if (chunk.messageParts === " ") {
       chunk.messageParts = 0;
+      chunk.messageParts = Number(chunk.messageParts);
+    } else if (chunk.messageParts === undefined) {
+      chunk.messageParts = "\n";
+    } else {
+      chunk.messageParts = Number(chunk.messageParts);
     }
-
-    chunk.messageParts = Number(chunk.messageParts);
 
     if (
       isNaN(chunk.messageParts) ||
@@ -127,11 +140,14 @@ class OpenProtocolSerializer extends Transform {
       return;
     }
 
-    if (chunk.messageNumber === " " || chunk.messageNumber === undefined) {
+    if (chunk.messageNumber === " ") {
       chunk.messageNumber = 0;
+      chunk.messageNumber = Number(chunk.messageNumber);
+    } else if (chunk.messageNumber === undefined) {
+      chunk.messageNumber = "\n";
+    } else {
+      chunk.messageNumber = Number(chunk.messageNumber);
     }
-
-    chunk.messageNumber = Number(chunk.messageNumber);
 
     if (
       isNaN(chunk.messageNumber) ||
