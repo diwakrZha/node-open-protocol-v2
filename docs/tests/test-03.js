@@ -32,15 +32,15 @@ const portControlador = 4545;
 const optsSessionControl = {
   // Configuration for Session Control
   defaultRevisions: undefined, // {"mid": rev, "mid": rev}
-  linkLayerActivate: undefined, // true activate / false not activate / undefined autoNegotiation
-  genericMode: false, // true activate / false or undefined not activate
-  keepAlive: undefined, // Number, default 10000
+  linkLayerActivate: true, // true activate / false not activate / undefined autoNegotiation
+  genericMode: true, // true activate / false or undefined not activate
+  keepAlive: 10000, // Number, default 10000
 
   // LinkLayer Configurations
   rawData: undefined, // true activate / false or undefined not activate
-  disableMidParsing: undefined, // true activate / false or undefined not activate
-  timeOut: undefined, // Number, default 3000
-  retryTimes: undefined, // Number, default 3
+  disableMidParsing: true, // true activate / false or undefined not activate
+  timeOut: 5000, // Number, default 3000
+  retryTimes: 3, // Number, default 3
 };
 
 // Initiate connection with detailed logging
