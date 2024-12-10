@@ -151,7 +151,7 @@
     },
     "traceData": {
         "data": 900,
-        "subscribe": 900,
+        "subscribe": 8,
         "unsubscribe": 9,
         "ack": 900,
         "generic": true
