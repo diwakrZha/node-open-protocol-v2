@@ -1,4 +1,4 @@
-{
+module.exports = /** @type {const} */ ({
     "15": "psetSelected",
     "52": "vin",
     "61": "lastTightening",
@@ -20,5 +20,8 @@
     "262": "toolTagID",
     "401": "automaticManualMode",
     "421": "openProtocolCommandsDisabled",
-    "501": "motorTuningResultData"
-}
+    "501": "motorTuningResultData",
+    "900": "traceData",
+    "901": "plotData"
+
+});
