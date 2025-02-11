@@ -163,12 +163,12 @@ class OpenProtocolParser extends Transform {
       let stationID = chunk.toString(encodingOP, ptr, ptr + 2);
       if (stationID === "  ") stationID = "1";
       let stationIDVal = Number(stationID);
-  
       if (isNaN(stationIDVal) || stationIDVal < 0 || stationIDVal > 99) {
-        debug("... err-stationID ...");
-        cb(new Error(`Invalid stationID [${stationIDVal}]`));
+        debug("OpenProtocolParser _transform err-stationID:", ptr, chunk);
+        cb(new Error(`Invalid stationID [${stationID}]`));
         return;
       }
+      
       obj.stationID = stationIDVal;
       ptr += 2;
   
@@ -182,7 +182,7 @@ class OpenProtocolParser extends Transform {
       let spindleID = chunk.toString(encodingOP, ptr, ptr + 2);
       if (spindleID === "  ") spindleID = "1";
       let spindleVal = Number(spindleID);
-      if (isNaN(spindleVal) || spindleVal < 1 || spindleVal > 99) {
+      if (isNaN(spindleVal) || spindleVal < 0 || spindleVal > 99) {
         debug("OpenProtocolParser _transform err-spindleID:", ptr, chunk);
         cb(new Error(`Invalid spindleID [${spindleID}]`));
         return;
