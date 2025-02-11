@@ -353,7 +353,6 @@ class LinkLayer extends Duplex {
         this.midSerializer.write(msg);
       }
       
-      
 
     _read(size) {
         debug("LinkLayer _read", size);
@@ -412,6 +411,7 @@ class LinkLayer extends Duplex {
     deactivateLinkLayer() {
         debug("LinkLayer deactivateLinkLayer");
 
+
         this.linkLayerActive = false;
         clearTimeout(this.timer);
     }
@@ -421,39 +421,39 @@ class LinkLayer extends Duplex {
      * @param {*} data
      */
     _receiverLinkLayer(data) {
-        debug("LinkLayer _receiverLinkLayer", data);
-      
-        clearTimeout(this.timer);
-      
-        if (data.mid === NEGATIVE_ACK
-            || data.payload.midNumber !== this.message.mid
-            || data.sequenceNumber !== this.sequenceNumber) {
-      
-          let err = new Error(
-            `incorrect fields of MID, MID[${data.payload.midNumber}] ...`
-          );
-      
-          if (this.callbackWrite) {
-            const cb = this.callbackWrite;
-            // GUARD: immediately clear the callback so no second call is possible
-            this.callbackWrite = undefined;
-            process.nextTick(() => cb(err));
-          } else {
-            this.emit("error", err);
-          }
-          return;
-        }
-      
-        this.message = {};
-      
-        // Normal success path
+    debug("LinkLayer _receiverLinkLayer", data);
+
+    clearTimeout(this.timer);
+
+    if (data.mid === NEGATIVE_ACK
+        || data.payload.midNumber !== this.message.mid
+        || data.sequenceNumber !== this.sequenceNumber) {
+
+        let err = new Error(
+        `incorrect fields of MID, MID[${data.payload.midNumber}] ...`
+        );
+
         if (this.callbackWrite) {
-          const cb = this.callbackWrite;
-          this.callbackWrite = undefined; // GUARD: clear
-          process.nextTick(() => cb());   // or cb(null)
+        const cb = this.callbackWrite;
+        // GUARD: immediately clear the callback so no second call is possible
+        this.callbackWrite = undefined;
+        process.nextTick(() => cb(err));
+        } else {
+        this.emit("error", err);
         }
-      }
-      
+        return;
+    }
+
+    this.message = {};
+
+    // Normal success path
+    if (this.callbackWrite) {
+        const cb = this.callbackWrite;
+        this.callbackWrite = undefined; // GUARD: clear
+        process.nextTick(() => cb());   // or cb(null)
+    }
+    }
+
 
     /**
      * @private
@@ -503,5 +503,6 @@ class LinkLayer extends Duplex {
         }
       }
       
+}
 
 module.exports = LinkLayer;
