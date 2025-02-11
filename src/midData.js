@@ -21,5 +21,7 @@ module.exports = /** @type {const} */ ({
     "401": "automaticManualMode",
     "421": "openProtocolCommandsDisabled",
     "501": "motorTuningResultData",
-    "900": "traceData"
+    "900": "traceData",
+    "901": "plotData"
+
 });

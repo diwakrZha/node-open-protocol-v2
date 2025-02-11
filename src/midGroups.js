@@ -189,5 +189,12 @@ module.exports = /** @type {const} */ ({
         "unsubscribe": 9,
         "ack": 900,
         "generic": true
+    },
+    "plotData": {
+        "data": 901,
+        "subscribe": 901,
+        "unsubscribe": 9,
+        "ack": 901,
+        "generic": true
     }
 });
