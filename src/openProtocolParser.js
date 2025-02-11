@@ -168,7 +168,6 @@ class OpenProtocolParser extends Transform {
         cb(new Error(`Invalid stationID [${stationID}]`));
         return;
       }
-      
       obj.stationID = stationIDVal;
       ptr += 2;
   
@@ -293,6 +292,7 @@ class OpenProtocolParser extends Transform {
   
     cb();
   }
+  
   
   
   
