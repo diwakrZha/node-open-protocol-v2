@@ -230,7 +230,7 @@ function serializer(msg, opts, cb) {
         msg.payload.extraData === undefined ||
         msg.payload.revision === undefined
       ) {
-        // Hard-coded for 
+        // Hard-coded for Angle Torque Current
         buf = Buffer.from("09000014100000000000000000000000000000003001002003");
       } else {
         // If the user has provided these fields, build the buffer dynamically:
