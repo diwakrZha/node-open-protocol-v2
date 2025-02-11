@@ -226,8 +226,7 @@ class OpenProtocolParser extends Transform {
       // === SPECIAL LOGIC FOR MID 900 (trace data) ===
       // Typically the spec says chunk[ptr] == 0. But some devices skip the trailing 0 for MID 900.
       // So let's do a conditional check:
-      if (obj.mid !== 900) {
-        // For standard MIDs, enforce trailing 0
+      if (obj.mid !== 900 && obj.mid !== 901) {        // For standard MIDs, enforce trailing 0
         if (chunk[ptr] !== 0) {
           let e = new Error(`Invalid message (expected trailing 0) [${chunk.toString()}]`);
           e.errno = constants.ERROR_LINKLAYER.INVALID_LENGTH;
