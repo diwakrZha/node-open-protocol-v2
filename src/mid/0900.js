@@ -212,6 +212,17 @@ function serializer(msg, opts, cb) {
       // Typically 0008 is used for subscription requests
       msg.mid = 8;
 
+      // Example subscription request:
+      msg.payload.midNumber = 900;
+      msg.payload.dataLength = 41; // 38 bytes for extraData (41 if all are subscribed, reduce by 3 when one is dropped off
+      msg.payload.extraData = "0000000000000000000000000000000"
+      + "3" // Number of trace types, options 1, 2, 3
+      + "001"; // Trace type 1 - Angle
+      + "002"; // Trace type 2 - Torque
+      + "003"; // Trace type 3 - Current
+
+
+
       // If the user did not provide subscription details, we can build a default subscription:
       if (
         msg.payload.midNumber === undefined ||
@@ -219,7 +230,7 @@ function serializer(msg, opts, cb) {
         msg.payload.extraData === undefined ||
         msg.payload.revision === undefined
       ) {
-        // Hard-coded example from your snippet
+        // Hard-coded for 
         buf = Buffer.from("09000014100000000000000000000000000000003001002003");
       } else {
         // If the user has provided these fields, build the buffer dynamically:
