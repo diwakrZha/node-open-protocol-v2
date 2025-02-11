@@ -116,25 +116,24 @@ function serializer(msg, opts, cb) {
       // so we don't actually send any extra payload bytes beyond the 20-byte header.
 
       //901 plotParameters subscription request:
-      //msg.payload.midNumber = 901;
-
-
-      
+      // msg.payload.midNumber = 901;
+      // msg.payload.dataLength = 0; // no extra data bytes for extraData
+      // msg.payload.extraData = "";
       // If the user did not provide subscription details, we can build a default subscription:
       if (
         msg.payload.midNumber === undefined ||
+        msg.payload.dataLength === undefined ||
+        msg.payload.extraData === undefined ||
         msg.payload.revision === undefined
       ) {
         // Hard-coded for Angle Torque Current
-        console.log("Using hardcoded 0901 subscription");
-        buf = Buffer.from("0901001");
-      }
-      else {  
-        console.log("Constructing telegram for 0901 subscription");
-
-       // Build the final buffer:
+        console.log("Using hard-coded subscription for MID 0901 rev.1");
+        buf = Buffer.from("0901");
+      } else {
+      // Build the final buffer:
       // It's 9 bytes = (2 for dataLength, 3 for revision, 4 for midNumber)
       // but dataLength=0 means "extraData" is length 0
+      console.log("Building buffer for MID 0901 rev.1 subscription");
       let buf = Buffer.alloc(9); 
       let position = { value: 9 };
 
@@ -144,6 +143,8 @@ function serializer(msg, opts, cb) {
       //  3) "revision" => 3 numeric chars
       //  4) "midNumber" => 4 numeric chars
       let ok = 
+        serializerField(msg, buf, "extraData", "string", 0, position, cb) &&
+        serializerField(msg, buf, "dataLength", "number", 2, position, cb) &&
         serializerField(msg, buf, "revision", "number", 3, position, cb) &&
         serializerField(msg, buf, "midNumber", "number", 4, position, cb);
 
