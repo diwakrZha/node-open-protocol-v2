@@ -116,9 +116,10 @@ function serializer(msg, opts, cb) {
       // so we don't actually send any extra payload bytes beyond the 20-byte header.
 
       //901 plotParameters subscription request:
-      // msg.payload.midNumber = 901;
-      // msg.payload.dataLength = 0; // no extra data bytes for extraData
-      // msg.payload.extraData = "";
+      msg.payload.midNumber = 901;
+      msg.payload.dataLength = 0; // no extra data bytes for extraData
+      msg.payload.extraData = "";
+      
       // If the user did not provide subscription details, we can build a default subscription:
       if (
         msg.payload.midNumber === undefined ||
