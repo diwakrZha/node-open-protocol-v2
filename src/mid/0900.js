@@ -232,6 +232,11 @@ function serializer(msg, opts, cb) {
       ) {
         // Hard-coded for Angle Torque Current
         buf = Buffer.from("09000014100000000000000000000000000000003001002003");
+
+        //09000014100000000000000000000000000000003001002003
+        //09000014100000000000000000000000000000003001003002
+        //00700008 0010    00  0900 0014100000000000 0000000000000000 00003001003002
+
       } else {
         // If the user has provided these fields, build the buffer dynamically:
         buf = Buffer.alloc(9 + msg.payload.dataLength); // for example

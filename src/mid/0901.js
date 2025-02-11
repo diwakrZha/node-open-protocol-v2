@@ -129,7 +129,7 @@ function serializer(msg, opts, cb) {
       ) {
         // Hard-coded for Angle Torque Current
         console.log("Using hard-coded subscription for MID 0901 rev.1");
-        buf = Buffer.from("0901");
+        buf = Buffer.from("090100100");
       } else {
       // Build the final buffer:
       // It's 9 bytes = (2 for dataLength, 3 for revision, 4 for midNumber)
