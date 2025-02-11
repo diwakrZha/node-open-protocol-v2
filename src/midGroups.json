@@ -64,7 +64,7 @@
         "unsubscribe": 103,
         "ack": 102,
         "generic": true
-    },    
+    },
     "lastPowerMACSTighteningResultStationData": {
         "data": 106,
         "subscribe": 105,
