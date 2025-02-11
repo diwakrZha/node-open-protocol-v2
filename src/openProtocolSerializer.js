@@ -7,7 +7,7 @@
 const util = require('util');
 const { Transform } = require('stream');
 
-const constants = require("./constants.json");
+const constants = require("./constants");
 const encodingOP = constants.defaultEncoder;
 
 const helpers = require("./helpers.js");
@@ -36,12 +36,13 @@ class OpenProtocolSerializer extends Transform {
      * @class OpenProtocolSerializer
      * @description This class performs the serialization of the MID header.
      * This transforms MID (object) in MID (Buffer).
-     * @param {Object} opts an object with the option passed to the constructor
+     * @param {Omit<import('stream').TransformOptions, 'writableObjectMode'>} opts an object with the option passed to the constructor
      */
-    constructor(opts) {
-        opts = opts || {};
-        opts.writableObjectMode = true;
-        super(opts);
+    constructor(opts = {}) {
+        super({
+          ...opts,
+          writableObjectMode: true,
+        });
         debug("new openProtocolSerializer");
     }
 
@@ -158,10 +159,6 @@ class OpenProtocolSerializer extends Transform {
         this.push(buf);
 
         cb();
-    }
-
-    _destroy() {
-        //no-op, needed to handle older node versions
     }
 }
 

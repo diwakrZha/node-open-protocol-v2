@@ -7,27 +7,18 @@
 const util = require('util');
 
 const EventEmitter = require('events');
-const LinkLayer = require('./linkLayer.js');
+const LinkLayer = require('../src/linkLayer.js');
 const helpers = require("./helpers.js");
-const midGroupList = require("./midGroups.json");
-const midData = require("./midData.json");
-const constants = require("./constants.json");
-const midRequest = require("./midRequest.json");
-const midCommand = require("./midCommand.json");
-const midReply = require("./midReply.json");
+const midGroupList = require("./midGroups");
+const midData = require("./midData");
+const constants = require("./constants");
+const midRequest = require("./midRequest");
+const midCommand = require("./midCommand");
+const midReply = require("./midReply");
 
 const mids = helpers.getMids();
 
 var debug = util.debuglog('open-protocol');
-// var debug = function (a, b, c) {
-
-//     if(b===undefined)
-//         console.log(a);
-//     if(b!==undefined)
-//         console.log(a, JSON.stringify(b));
-//     if(c!==undefined)
-//         console.log(a, JSON.stringify(c));
-// }
 
 const SUBSCRIBE = "subscribe";
 const COMMAND = "command";
@@ -111,13 +102,13 @@ class SessionControlClient extends EventEmitter {
 
     /**
      * @throws {error}
-     * @param {*}       opts
+     * @param {object}       opts
      * @param {object}  [opts.defaultRevisions = {}]
      * @param {boolean} [opts.linkLayerActivate] true = activate LinkLayer / false = not activate LinkLayer / undefined = autoNegotiation LinkLayer
      * @param {boolean} [opts.genericMode]  true activate / false or undefined not activate
      * @param {number}  [opts.keepAlive = 10000]
      *
-     * @param {stream}  opts.stream
+     * @param {import('net').Socket}  opts.stream
      * @param {boolean} [opts.rawData]
      * @param {object}  [opts.disableMidParsing = {}]
      * @param {number}  [opts.timeOut = 3000]
@@ -165,7 +156,7 @@ class SessionControlClient extends EventEmitter {
      *
      */
     constructor(opts) {
-        debug("new SessionControlClient", "################################  NEW SUBSCRIPTION ############################");
+        debug("new SessionControlClient");
 
         super();
 
@@ -226,8 +217,6 @@ class SessionControlClient extends EventEmitter {
             debug("SessionControlClient stream_close");
             this.close(new Error("Stream Close"));
         });
-
-        debug("END SessionControlClient", "################################  END NEW SUBSCRIPTION ############################");
     }
 
     /**
@@ -257,7 +246,7 @@ class SessionControlClient extends EventEmitter {
 
         let midSend = {};
 
-        if (this.statusConnection === CONN_CONNECTED) {
+        if (this.connected) {
             if (typeof cb === 'function') {
                 return process.nextTick(cb, this.controllerData);
             } else {
@@ -323,7 +312,6 @@ class SessionControlClient extends EventEmitter {
                     this.autoRevision["1"].position = newPosition;
                     sendMidOne();
                 } else {
-                    // @ts-ignore
                     let errorCode = helpers.padLeft(data.payload.errorCode, 2);
                     let e = new Error(`[Session Control Client] [Connect] negative acknowledge, MID[${data.payload.midNumber}], Error [${constants.ERROR[errorCode]}]`);
                     debug("SessionControlClient connect err_negative_acknowledge", data.payload.errorCode, this.defaultRevisions["1"]);
@@ -405,7 +393,6 @@ class SessionControlClient extends EventEmitter {
         this.ll.on("data", (data) => receivedReply(data));
 
         if (typeof cb === 'function') {
-            // @ts-ignore
             return this.once('connect', cb);
         } else {
             return new Promise((resolve, reject) => {
@@ -533,7 +520,6 @@ class SessionControlClient extends EventEmitter {
      * @param {Function} [cb]
      */
     sendMid(midNumber, opts, cb) {
-        debug("SessionControlClient sendMid", midNumber, opts);
         return maybePromisify(this, "_sendMid", midNumber, opts, cb);
     }
 
@@ -702,6 +688,13 @@ class SessionControlClient extends EventEmitter {
             return;
         }
 
+        if (midGroupList[midGroup].subscribe === undefined) {
+            let err = new Error(`[Session Control Client] [Subscribe] subscribing to midGroup [${midGroup}] is not supported`);
+            debug("SessionControlClient _subscribe err_unsupported_midGroup");
+            cb(err);
+            return;
+        }
+
         let mid = opts || {};
 
         let type = SUBSCRIBE;
@@ -728,16 +721,7 @@ class SessionControlClient extends EventEmitter {
             mid.mid = midGroupList[midGroup].subscribe;
         }
 
-        console.log("[MID]", JSON.stringify(mid));
-        console.log("[cb]", JSON.stringify(cb));
-        console.log("[type]", JSON.stringify(type));
-        console.log("[midGroup]", JSON.stringify(midGroup));
-
-        var tmp = new Message(mid, cb, type, midGroup);
-
-        console.log("[MID-Message]", JSON.stringify(tmp));
-
-        this.midQueue.push(tmp);
+        this.midQueue.push(new Message(mid, cb, type, midGroup));
         this._sendingProcess();
     }
 
@@ -767,6 +751,13 @@ class SessionControlClient extends EventEmitter {
         if (midGroupList[midGroup] === undefined) {
             let err = new Error(`[Session Control Client] [Unsubscribe] invalid groupMid [${midGroup}]`);
             debug("SessionControlClient _unsubscribe err_invalid_midGroup");
+            cb(err);
+            return;
+        }
+
+        if (midGroupList[midGroup].unsubscribe === undefined) {
+            let err = new Error(`[Session Control Client] [Unsubscribe] unsubscribing from midGroup [${midGroup}] is not supported`);
+            debug("SessionControlClient _unsubscribe err_unsupported_midGroup");
             cb(err);
             return;
         }
@@ -815,7 +806,7 @@ class SessionControlClient extends EventEmitter {
      */
     _sendingProcess() {
         debug("SessionControlClient _sendingProcess");
-        debug(`SessionControlClient current status: onClose-${this.onClose}; midQueueLen-${this.midQueue.length}; connectionStatus-${this.statusConnection}`)
+
         if (this.onClose) {
             if (this.midQueue.length > 0) {
                 let e = new Error("unavailable service");
@@ -854,8 +845,6 @@ class SessionControlClient extends EventEmitter {
             }
         }
 
-        debug("SessionControlClient _transmitMid", this.midInProcess);
-
         if (this.midInProcess.midRevision === 0) {
             this.inOperation = false;
             this._sendingProcess();
@@ -865,8 +854,6 @@ class SessionControlClient extends EventEmitter {
         clearTimeout(this.keepAliveTimer);
 
         this.keepAliveTimer = setTimeout(() => this._sendKeepAlive(), this.keepAlive);
-
-        debug("ll.write", this.midInProcess.mid);
 
         this.ll.write(this.midInProcess.mid);
     }
@@ -1006,7 +993,7 @@ class SessionControlClient extends EventEmitter {
      * @param {*} data
      */
     _onDataLinkLayer(data) {
-        debug('SessionControlClient _onDataLinkLayer: ');
+        debug('SessionControlClient _onDataLinkLayer');
 
         // Call callback of Link Layer
         this.ll.finishCycle();
@@ -1016,16 +1003,8 @@ class SessionControlClient extends EventEmitter {
     }
 
     _receiverData(data) {
-        debug("SessionControlClient _receiverData");
-        if(data.mid !== 9999)
-        {
-            debug("SessionControlClient", "################################  NEW RECEIVERDATA ############################");
+        debug('SessionControlClient _receiverData', data);
 
-            debug('SessionControlClient _receiverData', data);
-
-            // console.log("Hallo Peter - tritratrullala");
-            // debug("Hallo Robert - tritratrullala");
-        }
         this.emit("data", data);
 
         if (!this.midInProcess) {
@@ -1076,18 +1055,14 @@ class SessionControlClient extends EventEmitter {
                 return;
             }
 
-            // @ts-ignore
             let errorCode = helpers.padLeft(data.payload.errorCode, 2);
             let err = new Error(`[Session Control Client] negative acknowledge, MID[${midNumber}], Error[${constants.ERROR[errorCode]}]`);
             debug('SessionControlClient _receiverData err_negative_acknowledge', midNumber, errorCode);
             this.midInProcess.doCallback(err);
             this.inOperation = false;
             this._sendingProcess();
-            
-            debug("SessionControlClient", "################################  END NEW RECEIVERDATA ############################");
-            
             return;
-            
+
         }
 
         if (this.midInProcess.type === MANUAL) {
@@ -1133,11 +1108,6 @@ class SessionControlClient extends EventEmitter {
             this._sendingProcess();
             return;
         }
-
-        if (data.mid === 900 || data.mid === 901) {
-            this.emit("applicationData", data);
-            return;
-        }
     }
 
     /**
@@ -1160,25 +1130,10 @@ class SessionControlClient extends EventEmitter {
             this.midInProcess.doCallback(err);
         }
 
-        this._sendKeepAlive();
         this.inOperation = false;
-        this._sendingProcess();
-    }
 
-    /**
-     * @private
-     * @param {*} err
-     */
-     _onErrorParser(err) {
-        debug('SessionControlClient _onErrorParser', err);
-
-        if (this.midInProcess) {
-            this.midInProcess.doCallback(err);
-        }
-
-        this._sendKeepAlive();
-        this.inOperation = false;
-        this._sendingProcess();
+        // if a serialization error happened, then the streams are destroyed and no longer usable
+        this.close(err);
     }
 
 }
@@ -1186,8 +1141,7 @@ class SessionControlClient extends EventEmitter {
 class Message {
 
     constructor(mid, callback, type, group) {
-        debug('SessionControlClient new Message: mid - type - group ', mid, type, group);
-        debug('CornerData ', JSON.stringify(mid));
+        debug('SessionControlClient new Message');
 
         this._mid = mid;
         this._callback = callback;

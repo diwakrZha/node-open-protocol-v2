@@ -6,10 +6,8 @@
 
 const fs = require("fs");
 const path = require("path");
-const codes = require('./constants.json');
+const codes = require('./constants');
 const encoding = codes.defaultEncoder;
-const util = require('util');
-var debug = util.debuglog('open-protocol');
 
 let midList;
 
@@ -172,8 +170,6 @@ function serializerKey(message, buffer, key, length, position, cb) {
  * @returns {boolean} status process
  */
 function processParser(message, buffer, parameter, parameterType, parameterLength, position, cb) {
-
-    debug("helper-processParser: buffer.length-para-pos", buffer.length, parameter, position.value);
 
     let length = parameterLength;
     parameterLength = position.value + parameterLength;

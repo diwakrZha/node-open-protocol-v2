@@ -7,7 +7,7 @@
 const util = require('util');
 const { Transform } = require('stream');
 
-const constants = require("./constants.json");
+const constants = require("./constants");
 
 const encodingOP = constants.defaultEncoder;
 
@@ -19,14 +19,17 @@ class OpenProtocolParser extends Transform {
      * @class OpenProtocolParser
      * @description This class performs the parsing of the MID header.
      * This transforms MID (Buffer) in MID (Object).
-     * @param {Object} opts an object with the option passed to the constructor
+     * @param {Partial<Omit<import('stream').TransformOptions, 'readableObjectMode' | 'decodeStrings'> & {
+     *  rawData?: boolean
+     * }>} opts an object with the option passed to the constructor
      */
-    constructor(opts) {
-        opts = opts || {};
-        opts.readableObjectMode = true;
-        opts.decodeStrings = true;
+    constructor(opts = {}) {
 
-        super(opts);
+        super({
+          ...opts,
+          decodeStrings: true,
+          readableObjectMode: true,
+        });
 
         this.rawData = opts.rawData || false;
         this._nBuffer = null;
@@ -49,8 +52,6 @@ class OpenProtocolParser extends Transform {
             return;
         }
 
-        let minus = 0;
-
         while (ptr < chunk.length) {
 
             let obj = {};
@@ -58,12 +59,7 @@ class OpenProtocolParser extends Transform {
 
             let length = chunk.toString(encodingOP, ptr, ptr + 4);
 
-            debug("protocol length: ", length);
-            debug("chunk Length: ", chunk.length);
-
             length = Number(length);
-
-            debug("proceed chunk ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 
             if (isNaN(length) || length < 1 || length > 9999) {
 
@@ -82,12 +78,11 @@ class OpenProtocolParser extends Transform {
                 return;
             }
 
-            // wait for complete message if protocol length > chunk length
-            if (!(ptr + length < chunk.length) && chunk[ptr + length] !== 0 ) {
+            if (chunk[ptr + length] !== 0) {
                 let e = new Error(`Invalid message [${chunk.toString()}]`);
                 e.errno = constants.ERROR_LINKLAYER.INVALID_LENGTH;
                 cb(e);
-                debug("OpenProtocolParser _transform err-message:", ptr, length, chunk);
+                debug("OpenProtocolParser _transform err-message:", ptr, chunk);
                 return;
             }
 
@@ -215,8 +210,6 @@ class OpenProtocolParser extends Transform {
                 return;
             }
 
-            debug("Peter 0: ", ptr);
-
             ptr += 1;
 
             let messageNumber = chunk.toString(encodingOP, ptr, ptr + 1);
@@ -233,37 +226,19 @@ class OpenProtocolParser extends Transform {
                 return;
             }
 
-            debug("Peter 1: ", ptr);
-
             ptr += 1;
 
             obj.payload = chunk.slice(ptr, (ptr + length - 20));
 
-            debug("Peter 2: ", ptr);
-            debug("Peter startPtr2: ", startPtr);
-
             ptr += (length - 20) + 1;
 
             if (this.rawData) {
-
-                obj._raw = chunk.slice(startPtr, length);
-                chunk = chunk.slice(length);
-
-                //delete stupid messages with 1 extra NULL byte at the end
-                if (isNaN(Number(chunk.toString(encodingOP, 0, 1)))){
-                     chunk = chunk.slice(1);
-                }
-                
-                ptr = 0;
+                obj._raw = chunk.slice(startPtr, ptr);
             }
 
             this.push(obj);
         }
         cb();
-    }
-
-    _destroy() {
-        //no-op, needed to handle older node versions
     }
 }
 
