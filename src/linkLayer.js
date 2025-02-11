@@ -326,33 +326,34 @@ class LinkLayer extends Duplex {
             return;
         }
     }
-
     _write(msg, encoding, callback) {
         debug("LinkLayer _write", msg);
-
+      
+        // If it's an ack, we won't even store callback in this.callbackWrite
+        if (msg.isAck) {
+          clearTimeout(this.timer);
+          // call it once
+          process.nextTick(() => callback());
+          // Then just write
+          this.midSerializer.write(msg);
+          return;
+        }
+      
+        // Otherwise, store it for later
         this.callbackWrite = callback;
         this.resentTimes = 0;
-
+      
         if (this.linkLayerActive) {
-            msg.sequenceNumber = this.sequenceNumber;
-            this.sequenceNumber += 1;
-
-            if (this.sequenceNumber > 99) {
-                this.sequenceNumber = 1;
-            }
+          msg.sequenceNumber = this.sequenceNumber++;
+          if (this.sequenceNumber > 99) {
+            this.sequenceNumber = 1;
+          }
         }
-
-        // if this is an ack, callback immediately
-        if (msg.isAck) {
-            clearTimeout(this.timer);
-            process.nextTick(() => {
-                this.callbackWrite = null;
-                callback();
-            });
-        }
-
+      
         this.midSerializer.write(msg);
-    }
+      }
+      
+      
 
     _read(size) {
         debug("LinkLayer _read", size);
@@ -386,12 +387,14 @@ class LinkLayer extends Duplex {
 
     finishCycle(err) {
         debug("LinkLayer finishCycle", err);
-
+      
         if (this.callbackWrite) {
-            this.callbackWrite(err);
-            this.callbackWrite = undefined;
+          const cb = this.callbackWrite;
+          this.callbackWrite = undefined; // GUARD
+          cb(err); // direct call or nextTick
         }
-    }
+      }
+      
 
     /**
      * Enable LinkLayer
@@ -419,37 +422,38 @@ class LinkLayer extends Duplex {
      */
     _receiverLinkLayer(data) {
         debug("LinkLayer _receiverLinkLayer", data);
-
+      
         clearTimeout(this.timer);
-
-        if (data.mid === NEGATIVE_ACK || data.payload.midNumber !== this.message.mid || data.sequenceNumber !== this.sequenceNumber) {
-
-            let err = new Error(`incorrect fields of MID, MID[${data.payload.midNumber}] - Error code [${data.payload.errorCode}] -` +
-                ` Expect MID[${this.message.mid}] - Expect SequenceNumber [${this.sequenceNumber}] - Current SequenceNumber [${data.sequenceNumber}]`);
-
-            if (this.callbackWrite) {
-                const cb = this.callbackWrite;
-                process.nextTick(() => cb(err));
-
-                this.callbackWrite = undefined;
-
-            } else {
-                
-                debug('LinkLayer _receiverLinkLayer err-incorrect_fields_MID', this.message.mid, this.sequenceNumber);
-                this.emit("error", err);
-            }
-            return;
-        }
-
-        this.message = {};
-
-        if (this.callbackWrite) {
-            const callbackWrite = this.callbackWrite;
-            process.nextTick(() => callbackWrite());
-
+      
+        if (data.mid === NEGATIVE_ACK
+            || data.payload.midNumber !== this.message.mid
+            || data.sequenceNumber !== this.sequenceNumber) {
+      
+          let err = new Error(
+            `incorrect fields of MID, MID[${data.payload.midNumber}] ...`
+          );
+      
+          if (this.callbackWrite) {
+            const cb = this.callbackWrite;
+            // GUARD: immediately clear the callback so no second call is possible
             this.callbackWrite = undefined;
+            process.nextTick(() => cb(err));
+          } else {
+            this.emit("error", err);
+          }
+          return;
         }
-    }
+      
+        this.message = {};
+      
+        // Normal success path
+        if (this.callbackWrite) {
+          const cb = this.callbackWrite;
+          this.callbackWrite = undefined; // GUARD: clear
+          process.nextTick(() => cb());   // or cb(null)
+        }
+      }
+      
 
     /**
      * @private
@@ -478,31 +482,26 @@ class LinkLayer extends Duplex {
      */
     _resendMid() {
         debug("LinkLayer _resendMid");
-
+      
         clearTimeout(this.timer);
-
+      
         if (this.resentTimes < this.retryTimes) {
-            this.timer = setTimeout(() => this._resendMid(), this.timeOut);
-            this.opSerializer.write(this.message);
-            this.resentTimes += 1;
-
+          this.timer = setTimeout(() => this._resendMid(), this.timeOut);
+          this.opSerializer.write(this.message);
+          this.resentTimes += 1;
         } else {
-
-            let err = new Error(`[LinkLayer] timeout send MID[${this.message.mid}]`);
-
-            this.resentTimes = 0;
-
-            if (this.callbackWrite) {
-                const cb = this.callbackWrite;
-                process.nextTick(() => cb(err));
-
-                this.callbackWrite = undefined;
-            } else {
-                debug('LinkLayer _resendMid  err-timeout_send_MID', this.message.mid);
-                this.emit("error", err);
-            }
+          let err = new Error(`[LinkLayer] timeout send MID[${this.message.mid}]`);
+          this.resentTimes = 0;
+      
+          if (this.callbackWrite) {
+            const cb = this.callbackWrite;
+            this.callbackWrite = undefined;  // GUARD
+            process.nextTick(() => cb(err));
+          } else {
+            this.emit("error", err);
+          }
         }
-    }
-}
+      }
+      
 
 module.exports = LinkLayer;
