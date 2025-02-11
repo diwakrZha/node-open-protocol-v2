@@ -20,5 +20,6 @@ module.exports = /** @type {const} */ ({
     "262": "toolTagID",
     "401": "automaticManualMode",
     "421": "openProtocolCommandsDisabled",
-    "501": "motorTuningResultData"
+    "501": "motorTuningResultData",
+    "900": "traceData"
 });

@@ -182,5 +182,12 @@ module.exports = /** @type {const} */ ({
         "unsubscribe": 503,
         "ack": 502,
         "generic": true
+    },
+    "traceData": {
+        "data": 900,
+        "subscribe": 900,
+        "unsubscribe": 9,
+        "ack": 900,
+        "generic": true
     }
 });
