@@ -281,81 +281,107 @@ function testNul(object, buffer, parameter, position, cb) {
  * @returns {boolean}
  */
 function processDataFields(message, buffer, parameter, count, position, cb) {
-
     let control = 0;
-
-    if (count > 0) {
-
-        message.payload[parameter] = [];
-
-        while (control < count) {
-
-            let dataFields = {};
-
-            let parameterID = buffer.toString(encoding, position.value, position.value + 5).trim();
-
-            if (parameterID === "" || isNaN(Number(parameterID)) || Number(parameterID) < 0) {
-                cb(new Error(`invalid value, mid: ${message.mid}, parameter: ${parameter} - parameterID, payload: ${message.payload}`));
-                return false;
-            }
-            dataFields.parameterID = parameterID;
-            dataFields.parameterName = codes.PID[parameterID] || "";
-            position.value += 5;
-
-            let length = Number(buffer.toString(encoding, position.value, position.value + 3));
-
-            if (isNaN(length) || length < 0) {
-                cb(new Error(`invalid value, mid: ${message.mid}, parameter: ${parameter} - length, payload: ${message.payload}`));
-                return false;
-            }
-            dataFields.length = length;
-            position.value += 3;
-
-            let dataType = Number(buffer.toString(encoding, position.value, position.value + 2));
-
-            if (isNaN(dataType) || dataType < 0) {
-                cb(new Error(`invalid value, mid: ${message.mid}, parameter: ${parameter} - dataType, payload: ${message.payload}`));
-                return false;
-            }
-            dataFields.dataType = dataType;
-            position.value += 2;
-
-            let unit = buffer.toString(encoding, position.value, position.value + 3).trim();
-
-            if (unit === "" || isNaN(Number(unit)) || Number(unit) < 0) {
-                cb(new Error(`invalid value, mid: ${message.mid}, parameter: ${parameter} - unit, payload: ${message.payload}`));
-                return false;
-            }
-            dataFields.unit = unit;
-            dataFields.unitName = codes.UNIT[unit] || "";
-            position.value += 3;
-
-            let stepNumber = Number(buffer.toString(encoding, position.value, position.value + 4));
-
-            if (isNaN(stepNumber) || stepNumber < 0) {
-                cb(new Error(`invalid value, mid: ${message.mid}, parameter: ${parameter} - stepNumber, payload: ${message.payload}`));
-                return false;
-            }
-            dataFields.stepNumber = stepNumber;
-            position.value += 4;
-
-            let dataValue = buffer.toString(encoding, position.value, position.value + length).trim();
-
-            if (dataValue === "") {
-                cb(new Error(`invalid value, mid: ${message.mid}, parameter: ${parameter} - dataValue, payload: ${message.payload}`));
-                return false;
-            }
-            dataFields.dataValue = dataValue;
-            position.value += length;
-
-            message.payload[parameter].push(dataFields);
-
-            control += 1;
-        }
+  
+    // Prepare an array to store the data fields
+    message.payload[parameter] = [];
+  
+    // If count says there are, e.g., 7 fields, but the buffer only has
+    // enough for 3, we won't throw an error—just parse as many as we can.
+    while (control < count) {
+      // First, check we have enough bytes for the *fixed portion* of a data field:
+      //   parameterID(5) + length(3) + dataType(2) + unit(3) + stepNumber(4)
+      //   = 17 bytes, not including the dataValue which can vary.
+      if (position.value + 17 > buffer.length) {
+        // Not enough data to read the next field's metadata; stop parsing.
+        console.warn(`processDataFields: Buffer ended early while reading field #${control+1} of ${count}.`);
+        break; // or return true if you prefer to finalize now
+      }
+  
+      let dataFields = {};
+  
+      // 1) parameterID (5 chars)
+      let parameterID = buffer.toString(encoding, position.value, position.value + 5).trim();
+      if (!parameterID.match(/^\d+$/)) {
+        console.warn(`processDataFields: paramID is invalid or out of data, field #${control+1}. Stopping parse.`);
+        break;
+      }
+      dataFields.parameterID = parameterID;
+      dataFields.parameterName = codes.PID[parameterID] || "";
+      position.value += 5;
+  
+      // 2) length (3 chars => number)
+      let lengthStr = buffer.toString(encoding, position.value, position.value + 3);
+      let lengthVal = Number(lengthStr);
+      if (isNaN(lengthVal) || lengthVal < 0) {
+        console.warn(`processDataFields: length is invalid for field #${control+1} => '${lengthStr}'. Stopping parse.`);
+        break;
+      }
+      dataFields.length = lengthVal;
+      position.value += 3;
+  
+      // 3) dataType (2 chars => number)
+      let dataTypeStr = buffer.toString(encoding, position.value, position.value + 2);
+      let dataTypeVal = Number(dataTypeStr);
+      if (isNaN(dataTypeVal) || dataTypeVal < 0) {
+        console.warn(`processDataFields: dataType invalid for field #${control+1}. Stopping parse.`);
+        break;
+      }
+      dataFields.dataType = dataTypeVal;
+      position.value += 2;
+  
+      // 4) unit (3 chars => number => string)
+      let unitStr = buffer.toString(encoding, position.value, position.value + 3).trim();
+      if (!unitStr.match(/^\d+$/)) {
+        console.warn(`processDataFields: unit invalid for field #${control+1}.`);
+        break;
+      }
+      dataFields.unit = unitStr;
+      dataFields.unitName = codes.UNIT[unitStr] || "";
+      position.value += 3;
+  
+      // 5) stepNumber (4 chars => number)
+      let stepNumStr = buffer.toString(encoding, position.value, position.value + 4);
+      let stepNumVal = Number(stepNumStr);
+      if (isNaN(stepNumVal) || stepNumVal < 0) {
+        console.warn(`processDataFields: stepNumber invalid for field #${control+1}. Stopping parse.`);
+        break;
+      }
+      dataFields.stepNumber = stepNumVal;
+      position.value += 4;
+  
+      // Now we parse dataValue => 'lengthVal' bytes
+      // Check we have enough bytes left:
+      if (position.value + lengthVal > buffer.length) {
+        console.warn(`processDataFields: Not enough data left for 'dataValue' => needed ${lengthVal}, have ${buffer.length - position.value}. Stopping parse.`);
+        break;
+      }
+  
+      let dataValue = buffer.toString(encoding, position.value, position.value + lengthVal).trim();
+      // If you want to allow empty dataValue, remove the check below
+      if (dataValue === "") {
+        console.warn(`processDataFields: dataValue is empty for field #${control+1}. Possibly device out-of-spec.`);
+        // we can break, or we can store an empty string and keep going
+        // break;
+      }
+      dataFields.dataValue = dataValue;
+      position.value += lengthVal;
+  
+      // Add to array
+      message.payload[parameter].push(dataFields);
+  
+      control++;
     }
-    return true;
-}
+  
+    // If you want to strictly confirm we parsed all 'count' fields, check:
+    if (control < count) {
+      console.warn(`processDataFields: expected ${count} fields, got only ${control} before buffer ended. Device is out-of-spec.`);
+    }
+  
+    return true; // never “cb(error)” for partial parsing
+  }
 
+  
 /**
  * @description This method performs the extraction of the structure [Resolution Field], is perform [count] times,
  * from the position [position.value], these structures are stored in an array on [message.payload[parameter]].
