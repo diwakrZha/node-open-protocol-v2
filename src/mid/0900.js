@@ -196,7 +196,7 @@ function serializer(msg, opts, cb) {
 
   const position = { value: 0 };
 
-  // If acknowledging a 0900 subscription, we send MID 0005 with "0900" in the payload
+  // We send MID 0005 with "0900" in the payload to acknowledge a 0900 subscriptio
   if (msg.isAck) {
     msg.mid = 5;
     const ackBuf = Buffer.from("0900"); // "Acknowledging MID 0900"
@@ -209,7 +209,7 @@ function serializer(msg, opts, cb) {
 
   switch (msg.revision) {
     case 1:
-      // Typically 0008 is used for subscription requests
+      //0008 is used for subscription requests
       msg.mid = 8;
 
       // Example subscription request:
