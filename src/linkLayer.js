@@ -129,7 +129,7 @@ class LinkLayer extends Duplex {
     }
 
     _onDataMidSerializer(data) {
-        debug("LinkLayer _onDataMidSerializer send data: data.mid", data.mid);
+        debug("LinkLayer _onDataMidSerializer", data);
 
         if (data.mid !== NEGATIVE_ACK && data.mid !== POSITIVE_ACK && !data.isAck) {
 
@@ -184,12 +184,12 @@ class LinkLayer extends Duplex {
     }
 
     _onDataOpSerializer(data) {
-        debug("LinkLayer _onDataOpSerializer data.mid:", data.mid);
+        debug("LinkLayer _onDataOpSerializer", data);
         this.stream.write(data);
     }
 
     _onDataStream(data) {
-        debug("LinkLayer _onDataStream - received data:", data);
+        debug("LinkLayer _onDataStream", data);
         this.opParser.write(data);
     }
 
@@ -219,7 +219,7 @@ class LinkLayer extends Duplex {
                 }
 
                 this.emit("error", new Error(`[LinkLayer] inconsistency message number, MID[${data.mid}]`));
-                debug("LinkLayer _onDataOpParser err_inconsistency_message_number", data.mid, data.messageNumber, this.numberMessageReceived);
+                debug("LinkLayer _onDataOpParser err_inconsistency_message_number", data);
 
                 return;
             }
@@ -302,7 +302,7 @@ class LinkLayer extends Duplex {
     }
 
     _onDataMidParser(data) {
-        debug("LinkLayer _onDataMidParser data.mid", data.mid);
+        debug("LinkLayer _onDataMidParser", data);
 
         clearTimeout(this.timer);
 
@@ -318,7 +318,7 @@ class LinkLayer extends Duplex {
     }
 
     _write(msg, encoding, callback) {
-        debug("LinkLayer _write: ", msg, this.linkLayerActive);
+        debug("LinkLayer _write", msg);
 
         this.callbackWrite = callback;
         this.resentTimes = 0;
@@ -373,7 +373,7 @@ class LinkLayer extends Duplex {
     }
 
     finishCycle(err) {
-        debug("LinkLayer finishCycle - error message?", err);
+        debug("LinkLayer finishCycle", err);
 
         if (this.callbackWrite) {
             this.callbackWrite(err);

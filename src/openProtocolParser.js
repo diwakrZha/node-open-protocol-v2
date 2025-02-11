@@ -1,5 +1,6 @@
 //@ts-check
 /*
+  Copyright: (c) 2023, Alejandro de la Mata Chico
   Copyright: (c) 2018-2020, Smart-Tech Controle e Automação
   GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
 */
@@ -49,8 +50,6 @@ class OpenProtocolParser extends Transform {
             return;
         }
 
-        let minus = 0;
-
         while (ptr < chunk.length) {
 
             let obj = {};
@@ -58,12 +57,7 @@ class OpenProtocolParser extends Transform {
 
             let length = chunk.toString(encodingOP, ptr, ptr + 4);
 
-            debug("protocol length: ", length);
-            debug("chunk Length: ", chunk.length);
-
             length = Number(length);
-
-            debug("proceed chunk ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 
             if (isNaN(length) || length < 1 || length > 9999) {
 
@@ -82,12 +76,11 @@ class OpenProtocolParser extends Transform {
                 return;
             }
 
-            // wait for complete message if protocol length > chunk length
-            if (!(ptr + length < chunk.length) && chunk[ptr + length] !== 0 ) {
+            if (chunk[ptr + length] !== 0) {
                 let e = new Error(`Invalid message [${chunk.toString()}]`);
                 e.errno = constants.ERROR_LINKLAYER.INVALID_LENGTH;
                 cb(e);
-                debug("OpenProtocolParser _transform err-message:", ptr, length, chunk);
+                debug("OpenProtocolParser _transform err-message:", ptr, chunk);
                 return;
             }
 
@@ -215,8 +208,6 @@ class OpenProtocolParser extends Transform {
                 return;
             }
 
-            debug("Peter 0: ", ptr);
-
             ptr += 1;
 
             let messageNumber = chunk.toString(encodingOP, ptr, ptr + 1);
@@ -233,28 +224,18 @@ class OpenProtocolParser extends Transform {
                 return;
             }
 
-            debug("Peter 1: ", ptr);
-
             ptr += 1;
 
             obj.payload = chunk.slice(ptr, (ptr + length - 20));
 
-            debug("Peter 2: ", ptr);
-            debug("Peter startPtr2: ", startPtr);
-
             ptr += (length - 20) + 1;
 
+            if (obj.mid === 900) {
+                ptr = ptr - 1;
+            }
+
             if (this.rawData) {
-
-                obj._raw = chunk.slice(startPtr, length);
-                chunk = chunk.slice(length);
-
-                //delete stupid messages with 1 extra NULL byte at the end
-                if (isNaN(Number(chunk.toString(encodingOP, 0, 1)))){
-                     chunk = chunk.slice(1);
-                }
-                
-                ptr = 0;
+                obj._raw = chunk.slice(startPtr, ptr);
             }
 
             this.push(obj);
