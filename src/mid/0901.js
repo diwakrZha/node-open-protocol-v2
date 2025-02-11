@@ -126,11 +126,11 @@ function serializer(msg, opts, cb) {
         msg.payload.revision === undefined
       ) {
         // Hard-coded for Angle Torque Current
-        consolo.log("Using hardcoded 0901 subscription");
+        consol.log("Using hardcoded 0901 subscription");
         buf = Buffer.from("0901001");
       }
       else {  
-        consolo.log("Constructing 0901 subscription");
+        consol.log("Constructing 0901 subscription");
 
        // Build the final buffer:
       // It's 9 bytes = (2 for dataLength, 3 for revision, 4 for midNumber)
