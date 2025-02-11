@@ -10,7 +10,7 @@ const { Transform } = require('stream');
 const helpers = require("./helpers.js");
 const mids = helpers.getMids();
 
-const constants = require("./constants.json");
+const constants = require("./constants");
 const encodingOP = constants.defaultEncoder;
 
 var debug = util.debuglog('open-protocol');
@@ -23,17 +23,16 @@ class MIDParser extends Transform {
      * This transforms MID.payload (Buffer) in a MID.payload (Object).
      * This class uses the implemented MIDs in 'node-open-protocol/src/mid' for parsing MIDs.
      * In case of a not implemented MID, MID.payload is converted in to a String.
-     * @param opts parameters to Transform stream
+     * @param {Omit<import('stream').TransformOptions, 'writableObjectMode' | 'readableObjectMode'>} opts parameters to Transform stream
      */
-    constructor(opts) {
+    constructor(opts = {}) {
         debug("new MIDParser");
 
-        opts = opts || {};
-
-        opts.writableObjectMode = true;        
-        opts.readableObjectMode = true;
-
-        super(opts);
+        super({
+          ...opts,
+          writableObjectMode: true,
+          readableObjectMode: true,
+        });
     }
 
     _transform(chunk, encoding, cb) {
@@ -66,10 +65,6 @@ class MIDParser extends Transform {
             this.push(chunk);
             cb();
         }
-    }
-
-    _destroy() {
-        //no-op, needed to handle older node versions
     }
 }
 
