@@ -448,7 +448,114 @@ function processResolutionFields(message, buffer, parameter, count, position, cb
     return true;
 }
 
-module.exports = {
+
+
+/**
+ * @description This method performs the extraction of the trace, is perform [count] times,
+ * from the position [position.value], these structures are stored in an array on [message.payload[parameter]].
+ *
+ * The [cb] function is called in cases of error, sending the error as parameter.
+ * The return of this function is boolean, true: the process without errors or false: the process with an error.
+ *
+ * @see Specification OpenProtocol_Specification_R_2_8_0_9836 4415 01.pdf Page 260
+ *
+ * @param {object} message
+ * @param {buffer} buffer
+ * @param {string} parameter
+ * @param {number} count
+ * @param {object} position
+ * @param {string} timeStamp
+ * @param {number} timeValue
+ * @param {string} unit
+ * @param {function} cb
+ * @returns {boolean}
+ */
+function processTraceSamples(
+    message,
+    buffer,
+    parameter,
+    count,
+    position,
+    timeStamp,
+    timeValue,
+    unit,
+    cb
+  ) {
+    let control = 0;
+    let coefficient = 0;
+    message.payload[parameter] = [];
+  
+    if (count > 0) {
+      function firstPropertyWithGivenValue(value, object) {
+        for (var key in object) {
+          if (object[key].parameterName === value)
+            if (object[key].parameterID === "02213") {
+              coefficient = 1 / object[key].dataValue;
+            } else if (object[key].parameterID === "02214") {
+              coefficient = object[key].dataValue;
+            } else {
+              cb(
+                new Error(
+                  `invalid value, mid: ${message.mid}, parameter: ${object[key].parameterID}, payload: ${object[key].dataValue}`
+                )
+              );
+              return false;
+            }
+        }
+        return coefficient;
+      }
+  
+      firstPropertyWithGivenValue("Coefficient", message.payload.fieldData);
+  
+      function toTimestamp(strDate) {
+        var datum = new Date(strDate);
+        return datum;
+      }
+  
+      let multiplier = 0;
+  
+      if (unit === "200") {
+        multiplier = 1000; // ms
+      } else if (unit === "201") {
+        multiplier = 60000; // ms
+      } else if (unit === "202") {
+        multiplier = 1; // ms
+      } else if (unit === "203") {
+        multiplier = 3600000; // ms
+      } else {
+        multiplier = 1;
+      }
+  
+      while (control < count) {
+        let traceSample = {};
+        traceSample.timeStamp = toTimestamp(timeStamp);
+        traceSample.value = buffer.toString(
+          "hex",
+          position.value,
+          position.value + 2
+        );
+        traceSample.value = parseInt(traceSample.value, 16);
+  
+        if ((traceSample.value & 0x8000) > 0) {
+          traceSample.value = traceSample.value - 0x10000;
+        }
+  
+        traceSample.value = traceSample.value * coefficient;
+  
+        traceSample.timeStamp.setTime(
+          traceSample.timeStamp.getTime() + timeValue * multiplier * control
+        );
+  
+        message.payload[parameter].push(traceSample);
+  
+        position.value += 2;
+        control += 1;
+      }
+    }
+    return true;
+  }
+
+  module.exports = {
     getMids,
     testNul,
     padLeft,
@@ -457,6 +564,7 @@ module.exports = {
     processParser,
     processDataFields,
     processResolutionFields: processResolutionFields,
+    processTraceSamples,
     serializerField,
-    serializerKey
-};
+    serializerKey,
+  };
