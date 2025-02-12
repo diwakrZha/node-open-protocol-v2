@@ -16,6 +16,10 @@ const pad = helpers.padLeft;
 var debug = util.debuglog('open-protocol');
 
 /**
+ * @typedef {import('stream').TransformOptions & { vendor?: string }} OpenProtocolSerializerOptions
+ */
+
+/**
  * @class
  * @name Header
  * @param {object} Header
@@ -36,18 +40,26 @@ class OpenProtocolSerializer extends Transform {
      * @class OpenProtocolSerializer
      * @description This class performs the serialization of the MID header.
      * This transforms MID (object) in MID (Buffer).
-     * @param {Omit<import('stream').TransformOptions, 'writableObjectMode'>} opts an object with the option passed to the constructor
-     */
+     * @param {Omit<import('stream').TransformOptions, 'writableObjectMode'> & { vendor?: string }} opts An object with the options passed to the constructor.     */
     constructor(opts = {}) {
         super({
-          ...opts,
-          writableObjectMode: true,
+            ...opts,
+            writableObjectMode: true,
         });
-        debug("new openProtocolSerializer");
+        // Store the vendor property for later use
+        this.vendor = opts.vendor || "AtlasCopco";
+        debug("new openProtocolSerializer, vendor:", this.vendor);
     }
 
     _transform(chunk, encoding, cb) {
         debug("openProtocolSerializer _transform", chunk);
+
+        // Example vendor-specific behavior:
+        if (this.vendor === "Bosch") {
+            debug("Applying Bosch-specific logic");
+        } else {
+            debug("Using default vendor behavior");
+        }
 
         chunk.mid = Number(chunk.mid);
 
@@ -69,7 +81,7 @@ class OpenProtocolSerializer extends Transform {
             return;
         }
 
-        if (chunk.stationID === "  " ||chunk.stationID === undefined) {
+        if (chunk.stationID === "  " || chunk.stationID === undefined) {
             chunk.stationID = 1;
         }
 
@@ -81,7 +93,7 @@ class OpenProtocolSerializer extends Transform {
             return;
         }
 
-        if (chunk.spindleID === "  " ||chunk.spindleID === undefined) {
+        if (chunk.spindleID === "  " || chunk.spindleID === undefined) {
             chunk.spindleID = 1;
         }
 
@@ -129,7 +141,7 @@ class OpenProtocolSerializer extends Transform {
             return;
         }
 
-        if(chunk.payload === undefined){
+        if (chunk.payload === undefined) {
             chunk.payload = "";
         }
 
