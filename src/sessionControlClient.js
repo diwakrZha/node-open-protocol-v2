@@ -187,7 +187,7 @@ class SessionControlClient extends EventEmitter {
             timeOut: opts.timeOut,
             retryTimes: opts.retryTimes,
             rawData: opts.rawData,
-            disableMidParsing: opts.disableMidParsing
+            disableMidParsing: opts.disableMidParsing,
             vendor: opts.vendor, // Ensure vendor is passed here
         });
 
