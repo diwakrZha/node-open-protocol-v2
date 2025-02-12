@@ -55,11 +55,12 @@ class OpenProtocolSerializer extends Transform {
         debug("openProtocolSerializer _transform", chunk);
 
         // Example vendor-specific behavior:
-        if (this.vendor === "Bosch") {
-            debug("Applying Bosch-specific logic");
-        } else {
-            debug("Using default vendor behavior");
-        }
+        debug("new openProtocolSerializer, vendor:", this.vendor);
+        // if (this.vendor === "Bosch") {
+        //     debug("Applying Bosch-specific logic");
+        // } else {
+        //     debug("Using default vendor behavior");
+        // }
 
         chunk.mid = Number(chunk.mid);
 

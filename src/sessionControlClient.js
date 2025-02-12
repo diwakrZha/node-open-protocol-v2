@@ -113,6 +113,7 @@ class SessionControlClient extends EventEmitter {
      * @param {object}  [opts.disableMidParsing = {}]
      * @param {number}  [opts.timeOut = 3000]
      * @param {number}  [opts.retryTimes = 3]
+     * @param {string}  [opts.vendor]
      *
      * @example
      * // Instantiate SessionControlClient with default values
@@ -187,7 +188,10 @@ class SessionControlClient extends EventEmitter {
             retryTimes: opts.retryTimes,
             rawData: opts.rawData,
             disableMidParsing: opts.disableMidParsing
+            vendor: opts.vendor, // Ensure vendor is passed here
         });
+
+        debug("SessionControlClient initialized with vendor:", opts.vendor);
 
         this.ll.on("error", (err) => this._onErrorLinkLayer(err));
 
