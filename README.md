@@ -18,8 +18,35 @@ This node is a [Node.js](https://nodejs.org/) library that implements the Atlas 
 establish communication with tightening controllers. This library has several and the most 
 common [MIDs](docs/ImplementedMIDs.md) implemented.
 
-## Features
+## Upgrades
+### New features and fixes
+- **Major Changes & Enhancements**
+    - Support for MID 900 & 901 Handling.
+    - MID 900 now skips trailing zero validation, resolving issues with certain devices.
+    - MID 901 handling is improved with dynamic parsing logic.
+    - Improved parsing for VIN (MID 52) and Job Data (MID 35, 127).
+    - More robust buffer handling for incomplete MID messages.
 
+- **Improved Logging & Debugging**
+    - More verbose logs to help developers troubleshoot issues.
+    - Debug logs added to show MID flow.
+
+- **Refactoring & Performance Improvements**
+    - Optimized OpenProtocolParser for faster message parsing.
+    - Reduced buffer memory usage in _transform() method.
+    - Improved error messages when MID parsing fails.
+
+- **Bug Fixes**
+    - Fixed invalid length error when processing MIDs with missing trailing bytes.
+    - Corrected sequence number handling in MID replies.
+    - Fixed an issue where station ID and spindle ID were being misparsed.
+
+- **Upgraded MID Handling**
+    - MID	Improvement
+    - 900	Skips trailing zero validation
+    - 901	Improved buffer validation & message parsing
+
+## Features
 - **Full protocol support**: This library features not only simple MID parsing and serializing, but also establishing and 
 managing the whole lifecycle of an Open Protocol connection. The library user needs only to configure the IP Address and 
 port number and to call the needed functions. All the logic necessary to securely perform the communication, including 
