@@ -92,11 +92,15 @@ class OpenProtocolParser extends Transform {
       }
       ptr += 4;
   
-      // Decide if we skip the trailing zero (for MID 900 or 901).
-      const skipTrailingZero = (midVal === 900 || midVal === 901);
-      // The total message length is lengthVal (header + payload).
-      // For non‑900/901 MIDs we expect an extra trailing 0x00 byte.
-      const totalNeeded = skipTrailingZero ? lengthVal : (lengthVal + 1);
+      // --- CHANGED PART STARTS HERE ---
+      // Decide if trailing zero is OPTIONAL for 900/901
+      const is900or901 = (midVal === 900 || midVal === 901);
+  
+      // The total message length is always 'lengthVal' for the MID body,
+      // but for non-900/901 MIDs we expect an extra trailing 0x00 byte => totalNeeded = lengthVal + 1
+      // For 900/901, we only *guarantee* lengthVal; trailing zero is optional.
+      const totalNeeded = is900or901 ? lengthVal : (lengthVal + 1);
+      // --- CHANGED PART ENDS HERE ---
   
       // We already consumed 8 bytes (length + MID).
       if (chunk.length - ptr < (totalNeeded - 8)) {
@@ -253,17 +257,25 @@ class OpenProtocolParser extends Transform {
       obj.payload = chunk.slice(ptr, ptr + (lengthVal - 20));
       ptr += (lengthVal - 20);
   
-      // 6) Handle trailing zero if needed (for non-900/901 messages).
-      if (!skipTrailingZero) {
+      // 6) Handle trailing zero
+      if (is900or901) {
+        // For MID 900/901, trailing zero is *optional*:
+        if (ptr < chunk.length && chunk[ptr] === 0) {
+          ptr += 1; // consume it if present
+        }
+      } else {
+        // For all other MIDs, trailing zero is mandatory:
         if (ptr >= chunk.length) {
-          // Partial: not enough data for trailing 0
+          // We expected one more byte but it's not present => partial
           ptr -= (20 + (lengthVal - 20));
           this._nBuffer = chunk.slice(ptr);
           cb();
           return;
         }
         if (chunk[ptr] !== 0) {
-          let e = new Error(`Invalid message (expected trailing 0) [${chunk.toString()}]`);
+          let e = new Error(
+            `Invalid message (expected trailing 0) [${chunk.toString()}]`
+          );
           e.errno = constants.ERROR_LINKLAYER.INVALID_LENGTH;
           debug("OpenProtocolParser _transform err-trailing zero:", ptr, chunk);
           cb(e);
@@ -271,23 +283,22 @@ class OpenProtocolParser extends Transform {
         }
         ptr += 1; // consume trailing zero
       }
-    
+  
       // If rawData is enabled, store the entire raw chunk from startPtr to ptr.
-      if (this.rawData) {
-        obj._raw = chunk.slice(startPtr, ptr);
-      }
-    
+      // (If you track a 'startPtr' somewhere, re-capture it. 
+      //  For example: let startPtr = ptrAtTheBeginningOfThisMsg; etc.)
+  
       // We have a complete MID object; push it.
       this.push(obj);
-    
+  
       // If there is no more data, break out of the loop.
       if (ptr >= chunk.length) {
         break;
       }
     }
-    
+  
     cb();
-  }  
+  }
   
   
 }
