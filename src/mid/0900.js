@@ -196,7 +196,7 @@ function serializer(msg, opts, cb) {
 
   const position = { value: 0 };
 
-  // If acknowledging a 0900 subscription, we send MID 0005 with "0900" in the payload
+  // We send MID 0005 with "0900" in the payload to acknowledge a 0900 subscriptio
   if (msg.isAck) {
     msg.mid = 5;
     const ackBuf = Buffer.from("0900"); // "Acknowledging MID 0900"
@@ -209,7 +209,7 @@ function serializer(msg, opts, cb) {
 
   switch (msg.revision) {
     case 1:
-      // Typically 0008 is used for subscription requests
+      //0008 is used for subscription requests
       msg.mid = 8;
 
       // Example subscription request:
@@ -232,6 +232,11 @@ function serializer(msg, opts, cb) {
       ) {
         // Hard-coded for Angle Torque Current
         buf = Buffer.from("09000014100000000000000000000000000000003001002003");
+
+        //09000014100000000000000000000000000000003001002003
+        //09000014100000000000000000000000000000003001003002
+        //00700008 0010    00  0900 0014100000000000 0000000000000000 00003001003002
+
       } else {
         // If the user has provided these fields, build the buffer dynamically:
         buf = Buffer.alloc(9 + msg.payload.dataLength); // for example
