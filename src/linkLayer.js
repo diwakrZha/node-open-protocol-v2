@@ -72,7 +72,7 @@ class LinkLayer extends Duplex {
 
         this.opSerializer = new OpenProtocolSerializer({
             // @ts-ignore
-            vendor: _opts.vendor// || "AtlasCopco",
+            vendor: _opts.vendor || "AtlasCopco",
           });
         
         debug("LinkLayer initialized with vendor:", opts.vendor);
