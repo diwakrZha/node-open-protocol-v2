@@ -341,7 +341,7 @@ module.exports = /** @type {const} */ ({
         "00": "No Error",
         "01": "Invalid data",
         "02": "Parameter set ID not present",
-        "03": "Parameter set can not be set",
+        "03": "Parameter cannot be set",
         "04": "Parameter set not running",
         "06": "VIN upload subscription already exists",
         "07": "VIN upload subscription does not exists",
