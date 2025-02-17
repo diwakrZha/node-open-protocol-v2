@@ -27,6 +27,10 @@ common [MIDs](docs/ImplementedMIDs.md) implemented.
     - Improved parsing for VIN (MID 52) and Job Data (MID 35, 127).
     - More robust buffer handling for incomplete MID messages.
 
+- **Serialization based on vendor**
+    - Vendor based serialization switch 
+    - AtlasCopco and Desoutter can be selected in connection options
+
 - **Improved Logging & Debugging**
     - More verbose logs to help developers troubleshoot issues.
     - Debug logs added to show MID flow.
@@ -395,6 +399,84 @@ let op = openProtocol.createClient(4545, "127.0.0.1", data => {
         console.log("¡Ay caramba!", err.toString());
     });
 });
+```
+
+
+
+```javascript
+const openProtocol = require('node-open-protocol-v2'); // Use local library
+const debug = require('debug')('open-protocol:debug');
+
+let controllerIp = "192.168.4.64"; // your device IP
+let controllerPort = 4545;
+
+let options = {
+  linkLayerActivate: false,  // Enforce LinkLayer ACK
+  genericMode: false,        // Disable Generic MID requests
+  keepAlive: 10000,          // Keep-alive messages every 10s
+  rawData: true,             // Log raw data from controller
+  timeOut: 5000,             // Wait 5s for an ACK
+  retryTimes: 5,             // Retry failed messages 5 times
+
+  // 1) Add these to identify your device vendor + model
+  vendor: "Desoutter",
+  deviceModel: "MyControllerModel"
+};
+
+// Create Open Protocol Client
+let op;
+
+function connectToDevice() {
+  debug("🔄 Initializing OpenProtocol Connection...");
+
+  // If already connected, close first
+  if (op && typeof op.destroy === 'function') {
+    debug("🛑 Closing existing connection...");
+    op.destroy();
+  }
+
+  // 2) Pass `options` with vendor/deviceModel to createClient
+  op = openProtocol.createClient(controllerPort, controllerIp, options, (data) => {
+    debug("✅ Connected to OpenProtocol device!");
+    console.log("MID 0002 Response:", JSON.stringify(data, null, 2));
+
+    debug("✅ MID 1 Acknowledged. Now subscribing to MID 900 (traceData)...");
+
+    // Example subscription
+    op.subscribe("traceData", { revision: 1 }, (err, data) => {
+      if (err) {
+        debug("❌ Error subscribing to traceData:", err);
+        return;
+      }
+      debug("✅ Successfully subscribed to traceData.");
+    });
+  });
+
+  // The rest of your logging and error handling
+  op.on('send', (mid, payload) => {
+    debug(`📤 Sent MID: ${mid}, Payload: ${JSON.stringify(payload, null, 2)}`);
+  });
+  op.on('data', (data) => {
+    debug(`📩 Received MID: ${data.mid}, Payload: ${JSON.stringify(data, null, 2)}`);
+  });
+  op.on('rawData', (buffer) => {
+    debug(`🛠️ Raw Data: ${buffer.toString('hex')}`);
+  });
+  op.on('linkLayer', (data) => {
+    debug(`🔗 LinkLayer Event: ${JSON.stringify(data, null, 2)}`);
+  });
+  op.on("error", (error) => {
+    debug(`❌ OpenProtocol Error: ${error.message}`);
+  });
+  op.on("close", () => {
+    debug('🔌 Connection closed! Waiting before reconnecting...');
+    setTimeout(connectToDevice, 3000);
+  });
+}
+
+// ** Start the connection **
+connectToDevice();
+
 ```
 
 ## Controllers supported
