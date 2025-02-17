@@ -49,8 +49,8 @@ class OpenProtocolSerializer extends Transform {
         });
 
         // Store the vendor property for later use
-        this.vendor = opts.vendor || "AtlasCopco";
-        debug("new openProtocolSerializer, vendor:", this.vendor);
+        this.vendor = opts.vendor// || "AtlasCopco";
+        debug("IN USE openProtocolSerializer for vendor:", this.vendor);
     }
 
     _transform(chunk, encoding, cb) {
@@ -136,7 +136,7 @@ class OpenProtocolSerializer extends Transform {
         // 2) Dispatch to vendor-specific logic
         const normalizedVendor = this.vendor.trim().toLowerCase();
 
-        debug("new openProtocolSerializer, vendor:", this.vendor);
+        debug("Choosing openProtocolSerializer for vendor:", this.vendor);
 
         if (normalizedVendor === "bosch") {
             this._serializeForBosch(chunk, cb);
