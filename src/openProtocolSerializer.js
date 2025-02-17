@@ -49,7 +49,7 @@ class OpenProtocolSerializer extends Transform {
         });
 
         // Store the vendor property for later use
-        this.vendor = opts.vendor// || "AtlasCopco";
+        this.vendor = opts.vendor || "AtlasCopco";
         debug("IN USE openProtocolSerializer for vendor:", this.vendor);
     }
 
