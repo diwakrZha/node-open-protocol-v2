@@ -210,7 +210,7 @@ class OpenProtocolSerializer extends Transform {
     /**
      * For Desoutter: skip certain header fields, etc. 
      * 
-     * Note: This snippet includes your license block as requested.
+     * Note: This snippet includes license block.
      */
     _serializeForDesoutter(chunk, cb) {
         /*
