@@ -203,7 +203,7 @@ class OpenProtocolSerializer extends Transform {
         buf.write("            ", 8, encodingOP);
         buf.write(chunk.payload.toString(encodingOP), 20, encodingOP);
         buf.write("\u0000", sizeMessage, encodingOP);
-        debug("Bosch/Desoutter serialization result:", buf);
+        debug("Desoutter openProtocolSerializer _transform publish", buf);
         this.push(buf);
 
         cb();
