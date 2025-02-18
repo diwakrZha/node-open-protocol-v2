@@ -9,12 +9,12 @@ const util = require('util');
 const EventEmitter = require('events');
 const LinkLayer = require('../src/linkLayer.js');
 const helpers = require("./helpers.js");
-const midGroupList = require("./midGroups.json");
-const midData = require("./midData.json");
-const constants = require("./constants.json");
-const midRequest = require("./midRequest.json");
-const midCommand = require("./midCommand.json");
-const midReply = require("./midReply.json");
+const midGroupList = require("./midGroups");
+const midData = require("./midData");
+const constants = require("./constants");
+const midRequest = require("./midRequest");
+const midCommand = require("./midCommand");
+const midReply = require("./midReply");
 
 const mids = helpers.getMids();
 
@@ -102,17 +102,18 @@ class SessionControlClient extends EventEmitter {
 
     /**
      * @throws {error}
-     * @param {*}       opts
+     * @param {object}       opts
      * @param {object}  [opts.defaultRevisions = {}]
      * @param {boolean} [opts.linkLayerActivate] true = activate LinkLayer / false = not activate LinkLayer / undefined = autoNegotiation LinkLayer
      * @param {boolean} [opts.genericMode]  true activate / false or undefined not activate
      * @param {number}  [opts.keepAlive = 10000]
      *
-     * @param {stream}  opts.stream
+     * @param {import('net').Socket}  opts.stream
      * @param {boolean} [opts.rawData]
      * @param {object}  [opts.disableMidParsing = {}]
      * @param {number}  [opts.timeOut = 3000]
      * @param {number}  [opts.retryTimes = 3]
+     * @param {string}  [opts.vendor]
      *
      * @example
      * // Instantiate SessionControlClient with default values
@@ -186,8 +187,11 @@ class SessionControlClient extends EventEmitter {
             timeOut: opts.timeOut,
             retryTimes: opts.retryTimes,
             rawData: opts.rawData,
-            disableMidParsing: opts.disableMidParsing
+            disableMidParsing: opts.disableMidParsing,
+            vendor: opts.vendor, // Ensure vendor is passed here
         });
+
+        debug("SessionControlClient initialized with vendor:", opts.vendor);
 
         this.ll.on("error", (err) => this._onErrorLinkLayer(err));
 
@@ -688,6 +692,13 @@ class SessionControlClient extends EventEmitter {
             return;
         }
 
+        if (midGroupList[midGroup].subscribe === undefined) {
+            let err = new Error(`[Session Control Client] [Subscribe] subscribing to midGroup [${midGroup}] is not supported`);
+            debug("SessionControlClient _subscribe err_unsupported_midGroup");
+            cb(err);
+            return;
+        }
+
         let mid = opts || {};
 
         let type = SUBSCRIBE;
@@ -744,6 +755,13 @@ class SessionControlClient extends EventEmitter {
         if (midGroupList[midGroup] === undefined) {
             let err = new Error(`[Session Control Client] [Unsubscribe] invalid groupMid [${midGroup}]`);
             debug("SessionControlClient _unsubscribe err_invalid_midGroup");
+            cb(err);
+            return;
+        }
+
+        if (midGroupList[midGroup].unsubscribe === undefined) {
+            let err = new Error(`[Session Control Client] [Unsubscribe] unsubscribing from midGroup [${midGroup}] is not supported`);
+            debug("SessionControlClient _unsubscribe err_unsupported_midGroup");
             cb(err);
             return;
         }
@@ -1116,9 +1134,10 @@ class SessionControlClient extends EventEmitter {
             this.midInProcess.doCallback(err);
         }
 
-        this._sendKeepAlive();
         this.inOperation = false;
-        this._sendingProcess();
+
+        // if a serialization error happened, then the streams are destroyed and no longer usable
+        this.close(err);
     }
 
 }

@@ -1,251 +1,306 @@
-//@ts-check
+// @ts-check
 /*
-  Copyright: (c) 2023, Alejandro de la Mata Chico
-  Copyright: (c) 2018-2020, Smart-Tech Controle e Automação
-  GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+  This parser is based on the official open-protocol approach,
+  but includes a special exception for MID 900 (trace data), which
+  often does NOT have a trailing 0x00 terminator.
 */
 
-const util = require('util');
-const { Transform } = require('stream');
+const util = require("util");
+const { Transform } = require("stream");
 
-const constants = require("./constants.json");
-
+const constants = require("./constants");
 const encodingOP = constants.defaultEncoder;
 
-var debug = util.debuglog('open-protocol');
+var debug = util.debuglog("open-protocol");
 
 class OpenProtocolParser extends Transform {
+  /**
+   * @class OpenProtocolParser
+   * @description This class performs the parsing of the MID header (first 20 bytes)
+   * and extracts the payload for each message.
+   * @param {Partial<Omit<import("stream").TransformOptions, "readableObjectMode" | "decodeStrings"> & {
+   *  rawData?: boolean
+   * }>} opts an object with the option passed to the constructor
+   */
+  constructor(opts = {}) {
+    super({
+      ...opts,
+      decodeStrings: true,
+      readableObjectMode: true,
+    });
 
-    /**
-     * @class OpenProtocolParser
-     * @description This class performs the parsing of the MID header.
-     * This transforms MID (Buffer) in MID (Object).
-     * @param {Object} opts an object with the option passed to the constructor
-     */
-    constructor(opts) {
-        opts = opts || {};
-        opts.readableObjectMode = true;
-        opts.decodeStrings = true;
+    this.rawData = opts.rawData || false;
+    this._nBuffer = null;
+    debug("new OpenProtocolParser");
+  }
 
-        super(opts);
-
-        this.rawData = opts.rawData || false;
-        this._nBuffer = null;
-        debug("new OpenProtocolParser");
+  _transform(chunk, encoding, cb) {
+    debug("OpenProtocolParser _transform", chunk);
+  
+    let ptr = 0;
+  
+    // If we had leftover data from a previous chunk, prepend it.
+    if (this._nBuffer !== null) {
+      chunk = Buffer.concat([this._nBuffer, chunk]);
+      this._nBuffer = null;
     }
-
-    _transform(chunk, encoding, cb) {
-        debug("OpenProtocolParser _transform", chunk);
-
-        let ptr = 0;
-
-        if (this._nBuffer !== null) {
-            chunk = Buffer.concat([this._nBuffer, chunk]);
-            this._nBuffer = null;
-        }
-
-        if (chunk.length < 20) {
-            this._nBuffer = chunk;
-            cb();
-            return;
-        }
-
-        while (ptr < chunk.length) {
-
-            let obj = {};
-            let startPtr = ptr;
-
-            let length = chunk.toString(encodingOP, ptr, ptr + 4);
-
-            length = Number(length);
-
-            if (isNaN(length) || length < 1 || length > 9999) {
-
-                let e = new Error(`Invalid length [${length}]`);
-                e.errno = constants.ERROR_LINKLAYER.INVALID_LENGTH;
-
-                cb(e);
-
-                debug("OpenProtocolParser _transform err-length:", ptr, chunk);
-                return;
-            }
-
-            if (chunk.length < (ptr + length + 1)) {
-                this._nBuffer = chunk.slice(ptr);
-                cb();
-                return;
-            }
-
-            if (chunk[ptr + length] !== 0) {
-                let e = new Error(`Invalid message [${chunk.toString()}]`);
-                e.errno = constants.ERROR_LINKLAYER.INVALID_LENGTH;
-                cb(e);
-                debug("OpenProtocolParser _transform err-message:", ptr, chunk);
-                return;
-            }
-
-            ptr += 4;
-
-            let mid = chunk.toString(encodingOP, ptr, ptr + 4);
-            obj.mid = Number(mid);
-
-            if (isNaN(obj.mid) || obj.mid < 1 || obj.mid > 9999) {
-                cb(new Error(`Invalid MID [${mid}]`));
-                debug("OpenProtocolParser _transform err-mid:", ptr, chunk);
-                return;
-            }
-
-            ptr += 4;
-
-            let revision = chunk.toString(encodingOP, ptr, ptr + 3);
-
-            if (revision === "   ") {
-                revision = 1;
-            }
-
-            obj.revision = Number(revision);
-
-            if (isNaN(obj.revision) || obj.revision < 0 || obj.revision > 999) {
-                let e = new Error(`Invalid revision [${revision}]`);
-                e.errno = constants.ERROR_LINKLAYER.INVALID_REVISION;
-                e.obj = obj;
-                cb(e);
-                debug("OpenProtocolParser _transform err-revision:", ptr, chunk);
-                return;
-            }
-
-            if (obj.revision === 0) {
-                obj.revision = 1;
-            }
-
-            ptr += 3;
-
-            let noAck = chunk.toString(encodingOP, ptr, ptr + 1);
-
-            if (noAck === " ") {
-                noAck = 0;
-            }
-
-            obj.noAck = Number(noAck);
-
-            if (isNaN(obj.noAck) || obj.noAck < 0 || obj.noAck > 1) {
-                cb(new Error(`Invalid no ack [${obj.noAck}]`));
-                debug("OpenProtocolParser _transform err-no-ack:", ptr, chunk);
-                return;
-            }
-
-            obj.noAck = Boolean(obj.noAck);
-
-            ptr += 1;
-
-            let stationID = chunk.toString(encodingOP, ptr, ptr + 2);
-
-            if (stationID === "  ") {
-                stationID = 1;
-            }
-
-            obj.stationID = Number(stationID);
-
-            if (isNaN(obj.stationID) || obj.stationID < 0 || obj.stationID > 99) {
-                cb(new Error(`Invalid station id [${obj.stationID}]`));
-                debug("OpenProtocolParser _transform err-station-id:", ptr, chunk);
-                return;
-            }
-
-            if (obj.stationID === 0) {
-                obj.stationID = 1;
-            }
-
-            ptr += 2;
-
-            let spindleID = chunk.toString(encodingOP, ptr, ptr + 2);
-
-            if (spindleID === "  ") {
-                spindleID = 1;
-            }
-
-            obj.spindleID = Number(spindleID);
-
-            if (isNaN(obj.spindleID) || obj.spindleID < 0 || obj.spindleID > 99) {
-                cb(new Error(`Invalid spindle id [${obj.spindleID}]`));
-                debug("OpenProtocolParser _transform err-spindle-id:", ptr, chunk);
-                return;
-            }
-
-            if (obj.spindleID === 0) {
-                obj.spindleID = 1;
-            }
-
-            ptr += 2;
-
-            let sequenceNumber = chunk.toString(encodingOP, ptr, ptr + 2);
-
-            if (sequenceNumber === "  ") {
-                sequenceNumber = 0;
-            }
-
-            obj.sequenceNumber = Number(sequenceNumber);
-
-            if (isNaN(obj.sequenceNumber) || obj.sequenceNumber < 0 || obj.sequenceNumber > 99) {
-                cb(new Error(`Invalid sequence number [${obj.sequenceNumber}]`));
-                debug("OpenProtocolParser _transform err-sequence-number:", ptr, chunk);
-                return;
-            }
-
-            ptr += 2;
-
-            let messageParts = chunk.toString(encodingOP, ptr, ptr + 1);
-
-            if (messageParts === " ") {
-                messageParts = 0;
-            }
-
-            obj.messageParts = Number(messageParts);
-
-            if (isNaN(obj.messageParts) || obj.messageParts < 0 || obj.messageParts > 9) {
-                cb(new Error(`Invalid message parts [${obj.messageParts}]`));
-                debug("OpenProtocolParser _transform err-message-parts:", ptr, chunk);
-                return;
-            }
-
-            ptr += 1;
-
-            let messageNumber = chunk.toString(encodingOP, ptr, ptr + 1);
-
-            if (messageNumber === " ") {
-                messageNumber = 0;
-            }
-
-            obj.messageNumber = Number(messageNumber);
-
-            if (isNaN(obj.messageNumber) || obj.messageNumber < 0 || obj.messageNumber > 9) {
-                cb(new Error(`Invalid message number [${obj.messageNumber}]`));
-                debug("OpenProtocolParser _transform err-message-number:", ptr, chunk);
-                return;
-            }
-
-            ptr += 1;
-
-            obj.payload = chunk.slice(ptr, (ptr + length - 20));
-
-            ptr += (length - 20) + 1;
-
-            if (obj.mid === 900) {
-                ptr = ptr - 1;
-            }
-
-            if (this.rawData) {
-                obj._raw = chunk.slice(startPtr, ptr);
-            }
-
-            this.push(obj);
-        }
+  
+    // Parse as many complete messages as we can.
+    while (true) {
+      // 1) We need at least 4 bytes to read the length field.
+      if (chunk.length - ptr < 4) {
+        this._nBuffer = chunk.slice(ptr);
         cb();
+        return;
+      }
+  
+      // 2) Read the 4-byte length field.
+      let lengthStr = chunk.toString(encodingOP, ptr, ptr + 4);
+      // Extra guard: make sure the 4 bytes are all digits.
+      if (!/^\d{4}$/.test(lengthStr)) {
+        // Incomplete or invalid length field => buffer and wait.
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+      let lengthVal = Number(lengthStr);
+      if (isNaN(lengthVal) || lengthVal < 1 || lengthVal > 9999) {
+        let e = new Error(`Invalid length [${lengthStr}]`);
+        e.errno = constants.ERROR_LINKLAYER.INVALID_LENGTH;
+        debug("OpenProtocolParser _transform err-length:", ptr, chunk);
+        cb(e);
+        return;
+      }
+  
+      // We now have a complete 4-byte length.
+      // Advance the pointer.
+      ptr += 4;
+  
+      // 3) Check if we have at least 4 more bytes for the MID.
+      if (chunk.length - ptr < 4) {
+        this._nBuffer = chunk.slice(ptr - 4); // include length field
+        cb();
+        return;
+      }
+  
+      let midStr = chunk.toString(encodingOP, ptr, ptr + 4);
+      let midVal = Number(midStr);
+      if (isNaN(midVal) || midVal < 1 || midVal > 9999) {
+        debug("OpenProtocolParser _transform err-mid:", ptr, chunk);
+        cb(new Error(`Invalid MID [${midStr}]`));
+        return;
+      }
+      ptr += 4;
+  
+      // --- CHANGED PART STARTS HERE ---
+      // Decide if trailing zero is OPTIONAL for 900/901
+      const is900or901 = (midVal === 900 || midVal === 901);
+  
+      // The total message length is always 'lengthVal' for the MID body,
+      // but for non-900/901 MIDs we expect an extra trailing 0x00 byte => totalNeeded = lengthVal + 1
+      // For 900/901, we only *guarantee* lengthVal; trailing zero is optional.
+      const totalNeeded = is900or901 ? lengthVal : (lengthVal + 1);
+      // --- CHANGED PART ENDS HERE ---
+  
+      // We already consumed 8 bytes (length + MID).
+      if (chunk.length - ptr < (totalNeeded - 8)) {
+        // Not enough data; rewind pointer so we can re-read the whole message later.
+        ptr -= 8;
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+  
+      // 4) Parse the rest of the 12-byte header:
+      // revision (3), noAck (1), stationID (2), spindleID (2), sequenceNumber (2),
+      // messageParts (1), messageNumber (1)
+      let obj = {};
+      obj.mid = midVal;
+  
+      // (a) Revision (3)
+      if (chunk.length - ptr < 3) {
+        ptr -= 8;
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+      let revision = chunk.toString(encodingOP, ptr, ptr + 3);
+      if (revision === "   ") revision = "1";
+      obj.revision = Number(revision);
+      if (isNaN(obj.revision) || obj.revision < 1 || obj.revision > 999) {
+        let e = new Error(`Invalid revision [${revision}]`);
+        e.errno = constants.ERROR_LINKLAYER.INVALID_REVISION;
+        e.obj = obj;
+        debug("OpenProtocolParser _transform err-revision:", ptr, chunk);
+        cb(e);
+        return;
+      }
+      ptr += 3;
+  
+      // (b) noAck (1)
+      if (chunk.length - ptr < 1) {
+        ptr -= 11;
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+      let noAck = chunk.toString(encodingOP, ptr, ptr + 1);
+      if (noAck === " ") noAck = "0";
+      let noAckVal = Number(noAck);
+      if (isNaN(noAckVal) || noAckVal < 0 || noAckVal > 1) {
+        debug("OpenProtocolParser _transform err-noAck:", ptr, chunk);
+        cb(new Error(`Invalid noAck [${noAck}]`));
+        return;
+      }
+      obj.noAck = Boolean(noAckVal);
+      ptr += 1;
+  
+      // (c) stationID (2)
+      if (chunk.length - ptr < 2) {
+        ptr -= 12;
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+      let stationID = chunk.toString(encodingOP, ptr, ptr + 2);
+      // Accept "00" as a valid stationID.
+      if (stationID === "  ") stationID = "0";
+      let stationIDVal = Number(stationID);
+      if (isNaN(stationIDVal) || stationIDVal < 0 || stationIDVal > 99) {
+        debug("OpenProtocolParser _transform err-stationID:", ptr, chunk);
+        cb(new Error(`Invalid stationID [${stationIDVal}]`));
+        return;
+      }
+      obj.stationID = stationIDVal;
+      ptr += 2;
+  
+      // (d) spindleID (2)
+      if (chunk.length - ptr < 2) {
+        ptr -= 14;
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+      let spindleID = chunk.toString(encodingOP, ptr, ptr + 2);
+      if (spindleID === "  ") spindleID = "0";
+      let spindleVal = Number(spindleID);
+      if (isNaN(spindleVal) || spindleVal < 0 || spindleVal > 99) {
+        debug("OpenProtocolParser _transform err-spindleID:", ptr, chunk);
+        cb(new Error(`Invalid spindleID [${spindleID}]`));
+        return;
+      }
+      obj.spindleID = spindleVal;
+      ptr += 2;
+  
+      // (e) sequenceNumber (2)
+      if (chunk.length - ptr < 2) {
+        ptr -= 16;
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+      let seqStr = chunk.toString(encodingOP, ptr, ptr + 2);
+      if (seqStr === "  ") seqStr = "0";
+      let seqVal = Number(seqStr);
+      if (isNaN(seqVal) || seqVal < 0 || seqVal > 99) {
+        debug("OpenProtocolParser _transform err-sequenceNumber:", ptr, chunk);
+        cb(new Error(`Invalid sequenceNumber [${seqStr}]`));
+        return;
+      }
+      obj.sequenceNumber = seqVal;
+      ptr += 2;
+  
+      // (f) messageParts (1)
+      if (chunk.length - ptr < 1) {
+        ptr -= 18;
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+      let msgPartsStr = chunk.toString(encodingOP, ptr, ptr + 1);
+      if (msgPartsStr === " ") msgPartsStr = "0";
+      let msgPartsVal = Number(msgPartsStr);
+      if (isNaN(msgPartsVal) || msgPartsVal < 0 || msgPartsVal > 9) {
+        debug("OpenProtocolParser _transform err-messageParts:", ptr, chunk);
+        cb(new Error(`Invalid message parts [${msgPartsStr}]`));
+        return;
+      }
+      obj.messageParts = msgPartsVal;
+      ptr += 1;
+  
+      // (g) messageNumber (1)
+      if (chunk.length - ptr < 1) {
+        ptr -= 19;
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+      let msgNumStr = chunk.toString(encodingOP, ptr, ptr + 1);
+      if (msgNumStr === " ") msgNumStr = "0";
+      let msgNumVal = Number(msgNumStr);
+      if (isNaN(msgNumVal) || msgNumVal < 0 || msgNumVal > 9) {
+        debug("OpenProtocolParser _transform err-messageNumber:", ptr, chunk);
+        cb(new Error(`Invalid message number [${msgNumStr}]`));
+        return;
+      }
+      obj.messageNumber = msgNumVal;
+      ptr += 1;
+  
+      // 5) Parse the payload, which is (lengthVal - 20) bytes.
+      if (chunk.length - ptr < (lengthVal - 20)) {
+        // Not enough data for payload => buffer partial message.
+        ptr -= 20; // roll back the header bytes
+        this._nBuffer = chunk.slice(ptr);
+        cb();
+        return;
+      }
+      obj.payload = chunk.slice(ptr, ptr + (lengthVal - 20));
+      ptr += (lengthVal - 20);
+  
+      // 6) Handle trailing zero
+      if (is900or901) {
+        // For MID 900/901, trailing zero is *optional*:
+        if (ptr < chunk.length && chunk[ptr] === 0) {
+          ptr += 1; // consume it if present
+        }
+      } else {
+        // For all other MIDs, trailing zero is mandatory:
+        if (ptr >= chunk.length) {
+          // We expected one more byte but it's not present => partial
+          ptr -= (20 + (lengthVal - 20));
+          this._nBuffer = chunk.slice(ptr);
+          cb();
+          return;
+        }
+        if (chunk[ptr] !== 0) {
+          let e = new Error(
+            `Invalid message (expected trailing 0) [${chunk.toString()}]`
+          );
+          e.errno = constants.ERROR_LINKLAYER.INVALID_LENGTH;
+          debug("OpenProtocolParser _transform err-trailing zero:", ptr, chunk);
+          cb(e);
+          return;
+        }
+        ptr += 1; // consume trailing zero
+      }
+  
+      // If rawData is enabled, store the entire raw chunk from startPtr to ptr.
+      // (If you track a 'startPtr' somewhere, re-capture it. 
+      //  For example: let startPtr = ptrAtTheBeginningOfThisMsg; etc.)
+  
+      // We have a complete MID object; push it.
+      this.push(obj);
+  
+      // If there is no more data, break out of the loop.
+      if (ptr >= chunk.length) {
+        break;
+      }
     }
-
-    _destroy() {
-        //no-op, needed to handle older node versions
-    }
+  
+    cb();
+  }
+  
+  
 }
 
 module.exports = OpenProtocolParser;

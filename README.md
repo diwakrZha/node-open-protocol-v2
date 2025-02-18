@@ -18,8 +18,39 @@ This node is a [Node.js](https://nodejs.org/) library that implements the Atlas 
 establish communication with tightening controllers. This library has several and the most 
 common [MIDs](docs/ImplementedMIDs.md) implemented.
 
-## Features
+## Upgrades
+### New features and fixes
+- **Major Changes & Enhancements**
+    - Support for MID 900 & 901 Handling.
+    - MID 900 now skips trailing zero validation, resolving issues with certain devices.
+    - MID 901 handling is improved with dynamic parsing logic.
+    - Improved parsing for VIN (MID 52) and Job Data (MID 35, 127).
+    - More robust buffer handling for incomplete MID messages.
 
+- **Serialization based on vendor**
+    - Vendor based serialization switch 
+    - AtlasCopco and Desoutter can be selected in connection options
+
+- **Improved Logging & Debugging**
+    - More verbose logs to help developers troubleshoot issues.
+    - Debug logs added to show MID flow.
+
+- **Refactoring & Performance Improvements**
+    - Optimized OpenProtocolParser for faster message parsing.
+    - Reduced buffer memory usage in _transform() method.
+    - Improved error messages when MID parsing fails.
+
+- **Bug Fixes**
+    - Fixed invalid length error when processing MIDs with missing trailing bytes.
+    - Corrected sequence number handling in MID replies.
+    - Fixed an issue where station ID and spindle ID were being misparsed.
+
+- **Upgraded MID Handling**
+    - MID	Improvement
+    - 900	Skips trailing zero validation
+    - 901	Improved buffer validation & message parsing
+
+## Features
 - **Full protocol support**: This library features not only simple MID parsing and serializing, but also establishing and 
 managing the whole lifecycle of an Open Protocol connection. The library user needs only to configure the IP Address and 
 port number and to call the needed functions. All the logic necessary to securely perform the communication, including 
@@ -368,6 +399,84 @@ let op = openProtocol.createClient(4545, "127.0.0.1", data => {
         console.log("¡Ay caramba!", err.toString());
     });
 });
+```
+
+
+
+```javascript
+const openProtocol = require('node-open-protocol-v2'); // Use local library
+const debug = require('debug')('open-protocol:debug');
+
+let controllerIp = "192.168.4.64"; // your device IP
+let controllerPort = 4545;
+
+let options = {
+  linkLayerActivate: false,  // Enforce LinkLayer ACK
+  genericMode: false,        // Disable Generic MID requests
+  keepAlive: 10000,          // Keep-alive messages every 10s
+  rawData: true,             // Log raw data from controller
+  timeOut: 5000,             // Wait 5s for an ACK
+  retryTimes: 5,             // Retry failed messages 5 times
+
+  // 1) Add these to identify your device vendor + model
+  vendor: "Desoutter",
+  deviceModel: "MyControllerModel"
+};
+
+// Create Open Protocol Client
+let op;
+
+function connectToDevice() {
+  debug("🔄 Initializing OpenProtocol Connection...");
+
+  // If already connected, close first
+  if (op && typeof op.destroy === 'function') {
+    debug("🛑 Closing existing connection...");
+    op.destroy();
+  }
+
+  // 2) Pass `options` with vendor/deviceModel to createClient
+  op = openProtocol.createClient(controllerPort, controllerIp, options, (data) => {
+    debug("✅ Connected to OpenProtocol device!");
+    console.log("MID 0002 Response:", JSON.stringify(data, null, 2));
+
+    debug("✅ MID 1 Acknowledged. Now subscribing to MID 900 (traceData)...");
+
+    // Example subscription
+    op.subscribe("traceData", { revision: 1 }, (err, data) => {
+      if (err) {
+        debug("❌ Error subscribing to traceData:", err);
+        return;
+      }
+      debug("✅ Successfully subscribed to traceData.");
+    });
+  });
+
+  // The rest of your logging and error handling
+  op.on('send', (mid, payload) => {
+    debug(`📤 Sent MID: ${mid}, Payload: ${JSON.stringify(payload, null, 2)}`);
+  });
+  op.on('data', (data) => {
+    debug(`📩 Received MID: ${data.mid}, Payload: ${JSON.stringify(data, null, 2)}`);
+  });
+  op.on('rawData', (buffer) => {
+    debug(`🛠️ Raw Data: ${buffer.toString('hex')}`);
+  });
+  op.on('linkLayer', (data) => {
+    debug(`🔗 LinkLayer Event: ${JSON.stringify(data, null, 2)}`);
+  });
+  op.on("error", (error) => {
+    debug(`❌ OpenProtocol Error: ${error.message}`);
+  });
+  op.on("close", () => {
+    debug('🔌 Connection closed! Waiting before reconnecting...');
+    setTimeout(connectToDevice, 3000);
+  });
+}
+
+// ** Start the connection **
+connectToDevice();
+
 ```
 
 ## Controllers supported

@@ -1,208 +1,291 @@
 //@ts-check
 /*
-  Copyright: (c) 2023, Alejandro de la Mata Chico
-  Copyright: (c) 2018-2020, Smart-Tech Controle e Automação
-  GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+  MID 0900 (Revision 1)
+  
+  Format reminder:
+  10 chars -> resultID (number)
+  19 chars -> timeStamp (string)
+  3 chars  -> numberPID (number)
+    -> Then parse 'numberPID' data fields
+  2 chars  -> traceType (number)
+  2 chars  -> transducerType (number)
+  3 chars  -> unit (string or number, check your device specs)
+  3 chars  -> numberData
+    -> Then parse 'numberData' data fields
+  3 chars  -> numberResolution
+    -> Then parse resolutionFields
+  5 chars  -> numberTrace
+  1 char   -> NUL
+    -> Then parse traceSample (length = numberTrace)
 */
-
-/*
-    MID 0900
-    [xxxxxxxxxx]    [xxx...xxx]     [xxx]       [[][][][][]]    [xx]        [xx]            [xxx]
-    (10) 0-9        (19) 10-28      (3) 29-31   (n) 32-n        (2) n       (2) n           (3) n
-    resultID        timeStamp       numberPID   dataFields      traceType   transducerType  unit
-
-    [xxx]               [[][][][][]]        [xxxxx]         [0x00]          [xx]       
-    (3) n               (n) n               (5) n           (1) n           (2) n      
-    numberResolution    resolutionFields    numberTrace     NUL character   traceSample
-
-    Data fields
-    [xxxxx]         [xxx]       [xx]        [xxx]       [xxxx]          [xxx...xxx]
-    (5) 0-4         (3) 5-7     (2) 8-9     (3) 10-12   (4) 13-16       (n) 17-n 
-    parameterID     lenght      dataType    unit        stepNumber      dataValue
-
-    Resolution fields
-    [xxxxx]         [xxxxx]         [xxx]       [xx]            [xxx]        [xxx...xxx]
-    (5) 0-4         (5) 5-9         (3) 10-12   (2) 13-14       (3) 15-17    (n) 18-n  
-    firstIndex      lastIndex       length      dataType        unit         timeValue
-*/
-/*
-    payload: {
-        resultID: {number}
-        timeStamp: {string}
-        numberPID: {number}
-        dataFields: {object}
-        traceType: {number}
-        transducerType: {number}
-        unit: {number}
-        numberResolution: {number}
-        resolutionFields: {object}
-        numberTrace: {number}
-        traceSample: {string}
-    }
-
-    dataField: {
-        parameterID: {number}
-        lenght: {number}
-        dataType: {number}
-        unit: {number}
-        stepNumber: {number}
-        dataValue: {string}
-    }
-
-    resolutionField:{
-        firstIndex: {number}
-        lastIndex: {number}
-        length: {number}
-        dataType: {number}
-        unit: {number}
-        timeValue: {string}
-    }
-*/
-
-/**
- * @class
- * @name MID0900
- * @param {object} MID0900_1.payload REV. 1
- * @param {number} MID0900_1.payload.resultID
- * @param {string} MID0900_1.payload.timeStamp
- * @param {number} MID0900_1.payload.numberPID
- * @param {object} MID0900_1.payload.dataFields
- * @param {number} MID0900_1.payload.traceType
- * @param {number} MID0900_1.payload.transducerType
- * @param {number} MID0900_1.payload.unit
- * @param {number} MID0900_1.payload.numberResolution
- * @param {object} MID0900_1.payload.resolutionFields
- * @param {number} MID0900_1.payload.numberTrace
- * @param {string} MID0900_1.payload.traceSample
-
- * @param {object} MID0900_1.dataField
- * @param {number} MID0900_1.dataField.parameterID
- * @param {number} MID0900_1.dataField.lenght
- * @param {number} MID0900_1.dataField.dataType
- * @param {number} MID0900_1.dataField.unit
- * @param {number} MID0900_1.dataField.stepNumber
- * @param {string} MID0900_1.dataField.dataValue
- * 
- * @param {object} MID0900_1.resolutionField
- * @param {number} MID0900_1.resolutionField.firstIndex
- * @param {number} MID0900_1.resolutionField.lastIndex
- * @param {number} MID0900_1.resolutionField.length
- * @param {number} MID0900_1.resolutionField.dataType
- * @param {number} MID0900_1.resolutionField.unit
- * @param {string} MID0900_2.resolutionField.timeValue
- */
- 
 
 const helpers = require("../helpers.js");
 const testNul = helpers.testNul;
-const processParser = helpers.processParser;
-const serializerField = helpers.serializerField;
-const processDataFields = helpers.processDataFields;
-const processResolutionFields = helpers.processResolutionFields;
-const processTraceSamples = helpers.processTraceSamples;
+const processParser = helpers.processParser;         // already in your code
+const serializerField = helpers.serializerField;     // already in your code
+const processDataFields = helpers.processDataFields; // already in your code
+const processResolutionFields = helpers.processResolutionFields; 
+const processTraceSamples = helpers.processTraceSamples; // make sure it's exported in helpers.js
 
+/**
+ * @function parser
+ * @description Parse the payload of MID 0900 revision 1 (trace data).
+ * @param {object} msg - The “message” object as provided by the node-open-protocol parser pipeline.
+ * @param {object|null} opts - Not used here, can remain null.
+ * @param {function} cb - The callback to signal error or success.
+ */
+function parser(msg, opts, cb) {
+  // The raw payload is a Buffer. We'll parse and place results in msg.payload.
+  const buffer = msg.payload;
+  if (!Buffer.isBuffer(buffer)) {
+    return cb(new Error("MID0900 parser error: payload is not a Buffer"));
+  }
 
-function parser(msg, opts, cb){
-      
-    let buffer = msg.payload;
-    msg.payload = {};
+  // We’ll rewrite msg.payload as an object:
+  msg.payload = {};
+  const position = { value: 0 };
 
-    let traceLength = buffer.length;
- 
-    var position = {value: 0};
- 
-    switch(msg.revision){
-        
-        case 1: 
-         
-            processParser(msg, buffer, "resultID", "number", 10, position, cb) &&
-            processParser(msg, buffer, "timeStamp", "string", 19, position, cb) &&
-            processParser(msg, buffer, "numberPID", "number", 3, position, cb) &&
-            processDataFields(msg, buffer, "fieldPID", msg.payload.numberPID, position, cb) &&
-            processParser(msg, buffer, "traceType", "number", 2, position, cb) &&
-            processParser(msg, buffer, "transducerType", "number", 2, position, cb) &&
-            processParser(msg, buffer, "unit", "string", 3, position, cb) &&
-            processParser(msg, buffer, "numberData", "number", 3, position, cb) &&
-            processDataFields(msg, buffer, "fieldData", msg.payload.numberData, position, cb) &&
-            processParser(msg, buffer, "numberResolution", "number", 3, position, cb) &&
-            processResolutionFields(msg, buffer, "resolutionFields", msg.payload.numberResolution, position, cb) &&
-            processParser(msg, buffer, "numberTrace", "number", 5, position, cb) &&
-            testNul(msg, buffer, "char nul", position, cb) &&
-            processTraceSamples(msg, buffer, "sampleTrace", msg.payload.numberTrace, position, msg.payload.timeStamp, msg.payload.resolutionFields[0].timeValue, msg.payload.resolutionFields[0].unit, cb) &&
-            cb(null, msg);
+  // We only have case 1 implemented:
+  switch (msg.revision) {
+    case 1: {
+      // Optionally, do a quick “minimum length” check before parse:
+      // The absolute minimum size for all the fixed fields of Rev.1 might be:
+      // 10 + 19 + 3 + 2 + 2 + 3 + 3 + 3 + 5 + 1 = 48 (plus however many chars for dataFields, resolutionFields, etc.)
+      // If you want a quick check:
+      if (buffer.length < 48) {
+        return cb(
+          new Error(
+            `MID0900 parser error: buffer too short (${buffer.length} bytes).`
+          )
+        );
+      }
 
-        break;
-    }    
-}
+      // Start parsing each field:
+      // 1) resultID (10, number)
+      if (!processParser(msg, buffer, "resultID", "number", 10, position, cb)) {
+        return; // error thrown inside processParser
+      }
 
-
-function serializer(msg, opts, cb) {
-
-    let buf;
-    let statusprocess = false;
-
-    let position = {
-        value: 0
-    };
-
-    if (msg.isAck) {
-        msg.mid = 5;
-        let buf = Buffer.from("0900");
-        msg.payload = buf;
-        cb(null, msg);
+      // 2) timeStamp (19, string)
+      if (!processParser(msg, buffer, "timeStamp", "string", 19, position, cb)) {
         return;
+      }
+
+      // 3) numberPID (3, number)
+      if (!processParser(msg, buffer, "numberPID", "number", 3, position, cb)) {
+        return;
+      }
+
+      // 4) parse dataFields (we have 'numberPID' data fields)
+      if (
+        !processDataFields(
+          msg,
+          buffer,
+          "fieldPID",
+          msg.payload.numberPID, // how many fields
+          position,
+          cb
+        )
+      ) {
+        return;
+      }
+
+      // 5) traceType (2, number)
+      if (!processParser(msg, buffer, "traceType", "number", 2, position, cb)) {
+        return;
+      }
+
+      // 6) transducerType (2, number)
+      if (!processParser(msg, buffer, "transducerType", "number", 2, position, cb)) {
+        return;
+      }
+
+      // 7) unit (3, string or number—depends on official docs)
+      if (!processParser(msg, buffer, "unit", "string", 3, position, cb)) {
+        return;
+      }
+
+      // 8) numberData (3, number)
+      if (!processParser(msg, buffer, "numberData", "number", 3, position, cb)) {
+        return;
+      }
+
+      // 9) parse dataFields again (we have 'numberData' data fields)
+      if (
+        !processDataFields(
+          msg,
+          buffer,
+          "fieldData",
+          msg.payload.numberData,
+          position,
+          cb
+        )
+      ) {
+        return;
+      }
+
+      // 10) numberResolution (3, number)
+      if (
+        !processParser(msg, buffer, "numberResolution", "number", 3, position, cb)
+      ) {
+        return;
+      }
+
+      // 11) parse resolutionFields
+      if (
+        !processResolutionFields(
+          msg,
+          buffer,
+          "resolutionFields",
+          msg.payload.numberResolution,
+          position,
+          cb
+        )
+      ) {
+        return;
+      }
+
+      // 12) numberTrace (5, number)
+      if (!processParser(msg, buffer, "numberTrace", "number", 5, position, cb)) {
+        return;
+      }
+
+      // 13) testNul (1, NUL)
+      if (!testNul(msg, buffer, "char nul", position, cb)) {
+        return;
+      }
+
+      // 14) traceSample
+      //    pass arguments as your function signature demands
+      if (
+        !processTraceSamples(
+          msg,
+          buffer,
+          "sampleTrace",                     // store output in msg.payload.sampleTrace
+          msg.payload.numberTrace,           // length or count
+          position,
+          msg.payload.timeStamp,
+          msg.payload.resolutionFields?.[0]?.timeValue,
+          msg.payload.resolutionFields?.[0]?.unit,
+          cb
+        )
+      ) {
+        return; // error thrown in processTraceSamples
+      }
+
+      // If we reached here, all fields were parsed successfully.
+      return cb(null, msg);
     }
-
-    msg.revision = msg.revision || 1;
-
-    // Automatic subscription to last 3 curves: Angle, Torque and Current. Payload not needed.
-    /* {
-        msg.payload.midNumber = 0900;
-        msg.payload.dataLength = 41;
-        msg.payload.extraData = "00000000000000000000000000000003001002003";
-        msg.payload.revision = 1;
-        msg.payload.midNumber = 0900;
-    }*/
-
-    switch (msg.revision) {
-        case 1:
-
-        msg.mid = 8;
-        
-        // Automatic subscription to last 3 curves: Angle, Torque and Current. Payload not needed.
-        if ((msg.payload.midNumber || msg.payload.dataLength || msg.payload.extraData || msg.payload.revision) === undefined) {
-            buf = Buffer.from("09000014100000000000000000000000000000003001002003");
-        } else {
-            buf = Buffer.alloc(9 + msg.payload.dataLength);
-            position.value = (9 + msg.payload.dataLength);
-                statusprocess = serializerField(msg, buf, "extraData", "string", msg.payload.dataLength, position, cb) &&
-                serializerField(msg, buf, "dataLength", "number", 2, position, cb) &&
-                serializerField(msg, buf, "revision", "number", 3, position, cb) &&
-                serializerField(msg, buf, "midNumber", "number", 4, position, cb);
-    
-            if (!statusprocess) {
-                return;
-            }
-        }
-        
-        msg.payload = buf;
-
-        cb(null, msg);
-
-        break;
-
-        default:
-            cb(new Error(`[Serializer MID${msg.mid}] invalid revision [${msg.revision}]`));
-            break;
-    }
+    default:
+      return cb(
+        new Error(`[MID0900] Parser not implemented for revision [${msg.revision}]`)
+      );
+  }
 }
 
+/**
+ * @function serializer
+ * @description Example serializer that can generate a subscription request for MID 900, rev.1
+ * @param {object} msg
+ * @param {object|null} opts
+ * @param {function} cb
+ */
+function serializer(msg, opts, cb) {
+  let buf;
+  let statusprocess = false;
+
+  const position = { value: 0 };
+
+  // We send MID 0005 with "0900" in the payload to acknowledge a 0900 subscriptio
+  if (msg.isAck) {
+    msg.mid = 5;
+    const ackBuf = Buffer.from("0900"); // "Acknowledging MID 0900"
+    msg.payload = ackBuf;
+    return cb(null, msg);
+  }
+
+  // default to rev.1 for 0900
+  msg.revision = msg.revision || 1;
+
+  switch (msg.revision) {
+    case 1:
+      //0008 is used for subscription requests
+      msg.mid = 8;
+
+      // Example subscription request:
+      msg.payload.midNumber = 900;
+      msg.payload.dataLength = 41; // 38 bytes for extraData (41 if all are subscribed, reduce by 3 when one is dropped off
+      msg.payload.extraData = "0000000000000000000000000000000"
+      + "3" // Number of trace types, options 1, 2, 3
+      + "001"; // Trace type 1 - Angle
+      + "002"; // Trace type 2 - Torque
+      + "003"; // Trace type 3 - Current
+
+
+
+      // If the user did not provide subscription details, we can build a default subscription:
+      if (
+        msg.payload.midNumber === undefined ||
+        msg.payload.dataLength === undefined ||
+        msg.payload.extraData === undefined ||
+        msg.payload.revision === undefined
+      ) {
+        // Hard-coded for Angle Torque Current
+        buf = Buffer.from("09000014100000000000000000000000000000003001002003");
+
+        //09000014100000000000000000000000000000003001002003
+        //09000014100000000000000000000000000000003001003002
+        //00700008 0010    00  0900 0014100000000000 0000000000000000 00003001003002
+
+      } else {
+        // If the user has provided these fields, build the buffer dynamically:
+        buf = Buffer.alloc(9 + msg.payload.dataLength); // for example
+        position.value = 9 + msg.payload.dataLength;
+
+        // “serializerField” is a helper that inserts data in the correct order
+        // in reality you might need to reverse these calls so that "extraData"
+        // is last, etc. This depends on your actual subscription format.
+        statusprocess =
+          serializerField(
+            msg,
+            buf,
+            "extraData",
+            "string",
+            msg.payload.dataLength,
+            position,
+            cb
+          ) &&
+          serializerField(msg, buf, "dataLength", "number", 2, position, cb) &&
+          serializerField(msg, buf, "revision", "number", 3, position, cb) &&
+          serializerField(msg, buf, "midNumber", "number", 4, position, cb);
+
+        if (!statusprocess) {
+          // If something failed or cb() was called with an error, stop here
+          return;
+        }
+      }
+
+      msg.payload = buf;
+      return cb(null, msg);
+
+    default:
+      return cb(
+        new Error(
+          `[Serializer MID${msg.mid}] invalid revision [${msg.revision}]`
+        )
+      );
+  }
+}
+
+/**
+ * Let the parser/serializer system know which revisions you handle.
+ */
 function revision() {
-    return [1];
+  return [1];
 }
 
 module.exports = {
-    parser,
-    serializer,
-    revision
+  parser,
+  serializer,
+  revision,
 };
