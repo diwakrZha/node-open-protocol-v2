@@ -282,7 +282,7 @@ describe("MID 0065", () => {
                     identifierPart2: "Part2-Sucesso     ASD",
                     identifierPart3: "Part3-Sucesso     QWE",
                     identifierPart4: "Part4-Sucesso     ZXC",
-                    customerToghteningErrorCode: "AABB"
+                    customerTighteningErrorCode: "AABB"
                 }
             });
 
@@ -346,7 +346,7 @@ describe("MID 0065", () => {
                     identifierPart2: "Part2-Sucesso     ASD",
                     identifierPart3: "Part3-Sucesso     QWE",
                     identifierPart4: "Part4-Sucesso     ZXC",
-                    customerToghteningErrorCode: "AABB",
+                    customerTighteningErrorCode: "AABB",
                     prevailTorqueCompensateValue: 12,
                     toghteningErrorStatus: 565
                 }
@@ -413,7 +413,7 @@ describe("MID 0065", () => {
                     identifierPart2: "Part2-Sucesso     ASD",
                     identifierPart3: "Part3-Sucesso     QWE",
                     identifierPart4: "Part4-Sucesso     ZXC",
-                    customerToghteningErrorCode: "AABB",
+                    customerTighteningErrorCode: "AABB",
                     prevailTorqueCompensateValue: 12,
                     toghteningErrorStatus: 565,
                     stationID: 987654,
@@ -680,7 +680,7 @@ describe("MID 0065", () => {
                 identifierPart2: "Part2-Sucesso     ASD    ",
                 identifierPart3: "Part3-Sucesso     QWE    ",
                 identifierPart4: "Part4-Sucesso     ZXC    ",
-                customerToghteningErrorCode: "AABB"
+                customerTighteningErrorCode: "AABB"
             }
 
         };
@@ -745,7 +745,7 @@ describe("MID 0065", () => {
                 identifierPart2: "Part2-Sucesso     ASD    ",
                 identifierPart3: "Part3-Sucesso     QWE    ",
                 identifierPart4: "Part4-Sucesso     ZXC    ",
-                customerToghteningErrorCode: "AABB",
+                customerTighteningErrorCode: "AABB",
                 prevailTorqueCompensateValue: 12,
                 toghteningErrorStatus: 565
             }
@@ -812,7 +812,7 @@ describe("MID 0065", () => {
                 identifierPart2: "Part2-Sucesso     ASD    ",
                 identifierPart3: "Part3-Sucesso     QWE    ",
                 identifierPart4: "Part4-Sucesso     ZXC    ",
-                customerToghteningErrorCode: "AABB",
+                customerTighteningErrorCode: "AABB",
                 prevailTorqueCompensateValue: 12,
                 toghteningErrorStatus: 565,
                 stationID: 987654,

@@ -91,7 +91,7 @@
  * @param {string} MID0061_4.identifierPart4
  *  
  * @param {object} MID0061_5 REV. 5 [(REV. 4) +] 
- * @param {string} MID0061_5.customerToghteningErrorCode 
+ * @param {string} MID0061_5.customerTighteningErrorCode 
  * 
  * @param {object} MID0061_6 REV. 6 [(REV. 5) +] 
  * @param {number} MID0061_6.prevailTorqueCompensateValue
@@ -254,8 +254,8 @@ function parser(msg, opts, cb) {
             };
 
             status =
-                processKey(msg, buffer, "customerToghteningErrorCode", 53, 2, position, cb) &&
-                processParser(msg, buffer, "customerToghteningErrorCode", "string", 4, position, cb);
+                processKey(msg, buffer, "customerTighteningErrorCode", 53, 2, position, cb) &&
+                processParser(msg, buffer, "customerTighteningErrorCode", "string", 4, position, cb);
 
         case 4:
 
@@ -675,7 +675,7 @@ function serializer(msg, opts, cb) {
             }
 
             statusprocess =
-                serializerField(msg, buf, "customerToghteningErrorCode", "string", 4, position, cb) &&
+                serializerField(msg, buf, "customerTighteningErrorCode", "string", 4, position, cb) &&
                 serializerKey(msg, buf, 53, 2, position, cb);
 
 

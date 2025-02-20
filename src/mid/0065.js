@@ -61,7 +61,7 @@
  * @param {string} MID0065_4.identifierPart4
  * 
  * @param {object} MID0065_5 REV. 5 [(REV. 4) +]
- * @param {string} MID0065_5.customerToghteningErrorCode
+ * @param {string} MID0065_5.customerTighteningErrorCode
  * 
  * @param {object} MID0065_6 REV. 6 [(REV. 5) +]
  * @param {number} MID0065_6.prevailTorqueCompensateValue
@@ -158,8 +158,8 @@ function parser(msg, opts, cb) {
                 processParser(msg, buffer, "identifierPart3", "string", 25, position, cb) &&
                 processKey(msg, buffer, "identifierPart4", 33, 2, position, cb) &&
                 processParser(msg, buffer, "identifierPart4", "string", 25, position, cb) &&
-                processKey(msg, buffer, "customerToghteningErrorCode", 34, 2, position, cb) &&
-                processParser(msg, buffer, "customerToghteningErrorCode", "string", 4, position, cb) &&
+                processKey(msg, buffer, "customerTighteningErrorCode", 34, 2, position, cb) &&
+                processParser(msg, buffer, "customerTighteningErrorCode", "string", 4, position, cb) &&
                 processKey(msg, buffer, "prevailTorqueCompensateValue", 35, 2, position, cb) &&
                 processParser(msg, buffer, "prevailTorqueCompensateValue", "number", 6, position, cb) &&
                 processKey(msg, buffer, "toghteningErrorStatus", 36, 2, position, cb) &&
@@ -238,8 +238,8 @@ function parser(msg, opts, cb) {
                 processParser(msg, buffer, "identifierPart3", "string", 25, position, cb) &&
                 processKey(msg, buffer, "identifierPart4", 33, 2, position, cb) &&
                 processParser(msg, buffer, "identifierPart4", "string", 25, position, cb) &&
-                processKey(msg, buffer, "customerToghteningErrorCode", 34, 2, position, cb) &&
-                processParser(msg, buffer, "customerToghteningErrorCode", "string", 4, position, cb) &&
+                processKey(msg, buffer, "customerTighteningErrorCode", 34, 2, position, cb) &&
+                processParser(msg, buffer, "customerTighteningErrorCode", "string", 4, position, cb) &&
                 processKey(msg, buffer, "prevailTorqueCompensateValue", 35, 2, position, cb) &&
                 processParser(msg, buffer, "prevailTorqueCompensateValue", "number", 6, position, cb) &&
                 processKey(msg, buffer, "toghteningErrorStatus", 36, 2, position, cb) &&
@@ -314,8 +314,8 @@ function parser(msg, opts, cb) {
                 processParser(msg, buffer, "identifierPart3", "string", 25, position, cb) &&
                 processKey(msg, buffer, "identifierPart4", 33, 2, position, cb) &&
                 processParser(msg, buffer, "identifierPart4", "string", 25, position, cb) &&
-                processKey(msg, buffer, "customerToghteningErrorCode", 34, 2, position, cb) &&
-                processParser(msg, buffer, "customerToghteningErrorCode", "string", 4, position, cb) &&
+                processKey(msg, buffer, "customerTighteningErrorCode", 34, 2, position, cb) &&
+                processParser(msg, buffer, "customerTighteningErrorCode", "string", 4, position, cb) &&
                 cb(null, msg);
             break;
 
@@ -600,7 +600,7 @@ function serializer(msg, opts, cb) {
             }
 
             statusprocess =
-                serializerField(msg, buf, "customerToghteningErrorCode", "string", 4, position, cb) &&
+                serializerField(msg, buf, "customerTighteningErrorCode", "string", 4, position, cb) &&
                 serializerKey(msg, buf, 34, 2, position, cb);
 
         case 4:

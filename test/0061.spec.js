@@ -597,7 +597,7 @@ describe("MID 0061", () => {
                     identifierPart2: "AAAaaaBBBbbbEEEeeeGGGgggg",
                     identifierPart3: "Diego Luiz Teste MID",
                     identifierPart4: "Teste               teste",
-                    customerToghteningErrorCode: "AABB"
+                    customerTighteningErrorCode: "AABB"
                 }
             });
 
@@ -736,7 +736,7 @@ describe("MID 0061", () => {
                     identifierPart2: "AAAaaaBBBbbbEEEeeeGGGgggg",
                     identifierPart3: "Diego Luiz Teste MID",
                     identifierPart4: "Teste               teste",
-                    customerToghteningErrorCode: "AABB",
+                    customerTighteningErrorCode: "AABB",
                     prevailTorqueCompensateValue: 0.56,
                     _tighteningErrorStatus2: 32,
                     tighteningErrorStatus2: [
@@ -912,7 +912,7 @@ describe("MID 0061", () => {
                     identifierPart2: "AAAaaaBBBbbbEEEeeeGGGgggg",
                     identifierPart3: "Diego Luiz Teste MID",
                     identifierPart4: "Teste               teste",
-                    customerToghteningErrorCode: "AABB",
+                    customerTighteningErrorCode: "AABB",
                     prevailTorqueCompensateValue: 0.56,
                     _tighteningErrorStatus2: 32,
                     tighteningErrorStatus2: [
@@ -1090,7 +1090,7 @@ describe("MID 0061", () => {
                     identifierPart2: "AAAaaaBBBbbbEEEeeeGGGgggg",
                     identifierPart3: "Diego Luiz Teste MID",
                     identifierPart4: "Teste               teste",
-                    customerToghteningErrorCode: "AABB",
+                    customerTighteningErrorCode: "AABB",
                     prevailTorqueCompensateValue: 0.56,
                     _tighteningErrorStatus2: 32,
                     tighteningErrorStatus2: [
@@ -1509,7 +1509,7 @@ describe("MID 0061", () => {
                 identifierPart2: "AAAaaaBBBbbbEEEeeeGGGgggg",
                 identifierPart3: "Diego Luiz Teste MID",
                 identifierPart4: "Teste               teste",
-                customerToghteningErrorCode: "AABB"
+                customerTighteningErrorCode: "AABB"
             }
         };
 
@@ -1587,7 +1587,7 @@ describe("MID 0061", () => {
                 identifierPart2: "AAAaaaBBBbbbEEEeeeGGGgggg",
                 identifierPart3: "Diego Luiz Teste MID",
                 identifierPart4: "Teste               teste",
-                customerToghteningErrorCode: "AABB",
+                customerTighteningErrorCode: "AABB",
                 prevailTorqueCompensateValue: 0.56,
                 tighteningErrorStatus2: [
                     undefined,
@@ -1700,7 +1700,7 @@ describe("MID 0061", () => {
                 identifierPart2: "AAAaaaBBBbbbEEEeeeGGGgggg",
                 identifierPart3: "Diego Luiz Teste MID",
                 identifierPart4: "Teste               teste",
-                customerToghteningErrorCode: "AABB",
+                customerTighteningErrorCode: "AABB",
                 prevailTorqueCompensateValue: 0.56,
                 tighteningErrorStatus2: 65000,
                 compensatedAngle: 1.00,
@@ -1782,7 +1782,7 @@ describe("MID 0061", () => {
                 identifierPart2: "AAAaaaBBBbbbEEEeeeGGGgggg",
                 identifierPart3: "Diego Luiz Teste MID",
                 identifierPart4: "Teste               teste",
-                customerToghteningErrorCode: "AABB",
+                customerTighteningErrorCode: "AABB",
                 prevailTorqueCompensateValue: 0.56,
                 tighteningErrorStatus2: 65000,
                 numberStagesMultiStage: 5,
