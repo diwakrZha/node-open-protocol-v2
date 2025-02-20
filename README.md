@@ -402,6 +402,8 @@ let op = openProtocol.createClient(4545, "127.0.0.1", data => {
 ```
 
 
+Passing vendor and device model in connection options. 
+#TODO needs more tests
 
 ```javascript
 const openProtocol = require('node-open-protocol-v2'); // Use local library
