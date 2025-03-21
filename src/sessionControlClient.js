@@ -49,7 +49,7 @@ function maybePromisify(ref, method, mid, opts, cb) {
             cb = opts;
             opts = {};
         } else {
-            return promisify(ref, method, opts);
+            return promisify(ref, method, mid, opts);
         }
     }
 
@@ -212,14 +212,9 @@ class SessionControlClient extends EventEmitter {
         this.stream = opts.stream;
 
         this.stream.on("error", (err) => {
-            try { // <--- ADDED TRY BLOCK HERE
-                debug("SessionControlClient stream_error", err);
-                this.emit("error", err);
-                this.close(err);
-            } catch (handlerErr) { // <--- ADDED CATCH BLOCK HERE
-                console.error('Error in stream error handler:', handlerErr); // Log handler error
-                // Do NOT re-throw or the process might still crash
-            }
+            debug("SessionControlClient stream_error", err);
+            this.emit("error", err);
+            this.close(err);
         });
 
         this.stream.on("close", () => {
